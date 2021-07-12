@@ -10,7 +10,7 @@ if sys.version_info < (3, 7):
 
 
 try:
-    from setuptools import setup
+    from setuptools import setup, find_packages
 except ImportError:
     print('Please install setuptools before installing the Juno_pipeline library.\n', 
     file=sys.stderr)
@@ -25,25 +25,22 @@ setup(
     description=juno_info.__description__,
     zip_safe=False,
     license=juno_info.__license__,
-    packages='juno_pipeline',
-    scripts=[
-        'juno_pipeline/juno_pipeline.py'],
+    packages=find_packages(include=['juno_pipeline', 'juno_pipeline.*'], exclude='__main__'),
+    scripts=['juno_pipeline/base_juno_pipeline.py'],
     package_data={'juno_pipeline': ['envs/*']},
     install_requires=[
         'dask',
-        'git',
         'mamba',
         'pip>=19.2.0',
         'snakemake>=6.1.0',
-        'unittest',
+        'unittest2',
         'xlrd==1.2.0',
-        'yaml>=5.4.1'
+        'pyyaml>=5.4.1'
     ],
     entry_points={
         "console_scripts": [
             "juno_pipeline = juno_pipeline:main"
         ]
     },
-    keywords=[],
     include_package_data=True
 )

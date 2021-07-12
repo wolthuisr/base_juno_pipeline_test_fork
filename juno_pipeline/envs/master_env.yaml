@@ -4,10 +4,10 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - mamba
   - dask
   - drmaa==0.7.9
   - git
+  - mamba
   - pip==19.2.3
   - snakemake==6.2.1
   - xlrd==1.2.0
