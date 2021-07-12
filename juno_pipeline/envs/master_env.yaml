@@ -1,0 +1,17 @@
+name: base_juno
+channels:
+  - bioconda
+  - conda-forge
+  - defaults
+dependencies:
+  - mamba
+  - dask
+  - drmaa==0.7.9
+  - git
+  - pip==19.2.3
+  - snakemake==6.2.1
+  - xlrd==1.2.0
+  - unittest2
+  - pip:
+    - PyYAML==5.4.1
+
