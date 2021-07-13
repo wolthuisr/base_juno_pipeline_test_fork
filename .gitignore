@@ -1,7 +1,8 @@
 # Python 
 __pycache__/
-juno_pipeline/__pycache__/
+base_juno_pipeline/__pycache__/
 Juno_bacteriology_pipelines.egg-info/
+base_juno_pipeline.egg-info/
 
 # Conda
 conda

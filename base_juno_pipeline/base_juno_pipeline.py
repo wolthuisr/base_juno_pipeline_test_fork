@@ -7,7 +7,7 @@ bioinformatics group at the RIVM. All our pipelines use Snakemake.
 from datetime import datetime
 import pathlib
 import re
-# import snakemake
+from snakemake import snakemake
 import subprocess
 from uuid import uuid4
 import yaml
@@ -234,7 +234,7 @@ class RunSnakemake(JunoHelpers):
         self.path_to_audit.mkdir(parents=True, exist_ok=True)
         self.audit_trail = self.generate_audit_trail()
         # Run pipeline
-        self.run_snakemake()
+        # self.run_snakemake()
 
 
     def is_not_repo(self):
@@ -300,26 +300,27 @@ class RunSnakemake(JunoHelpers):
 
         if self.local:
             print(self.message_formatter("Jobs will run locally"))
-            drmaa = None
+            cluster = None
         else:
             print(self.message_formatter("Jobs will be sent to the cluster"))
-            drmaa_log_dir = pathlib.Path(str(self.output_dir)).joinpath('log', 'drmaa')
-            drmaa_log_dir.mkdir(parents=True, exist_ok=True)
-            drmaa = " -q %s \
+            cluster_log_dir = pathlib.Path(str(self.output_dir)).joinpath('log', 'cluster')
+            cluster_log_dir.mkdir(parents=True, exist_ok=True)
+            cluster = "bsub -q %s \
                     -n {threads} \
                     -o %s/{name}_{wildcards}_{jobid}.out \
                     -e %s/{name}_{wildcards}_{jobid}.err \
                     -R \"span[hosts=1]\" \
-                    -R \"rusage[mem={resources.mem_mb}]\" " % (str(self.queue), str(drmaa_log_dir), str(drmaa_log_dir))
+                    -M {resources.mem_gb}G \
+                    -W 60" % (str(self.queue), str(cluster_log_dir), str(cluster_log_dir))
         
         try:
-            snakemake.snakemake(self.snakefile,
+            snakemake(self.snakefile,
                             workdir=self.workdir,
                             configfiles=[self.user_parameters, self.fixed_parameters],
                             config={"sample_sheet": str(self.sample_sheet)},
                             cores=self.cores,
                             nodes=self.cores,
-                            drmaa=drmaa,
+                            cluster=cluster,
                             jobname=self.pipeline_name + "_{name}.jobid{jobid}",
                             use_conda=self.useconda,
                             conda_frontend=self.conda_frontend,

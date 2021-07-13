@@ -5,7 +5,7 @@ import unittest
 
 main_script_path = str(pathlib.Path(pathlib.Path(__file__).parent.absolute()).parent.absolute())
 path.insert(0, main_script_path)
-from juno_pipeline import base_juno_pipeline
+from base_juno_pipeline import base_juno_pipeline
 
 
 

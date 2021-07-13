@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-from juno_pipeline import juno_info
+from base_juno_pipeline import juno_info
 import sys
 
 if sys.version_info < (3, 7): 
@@ -12,7 +12,7 @@ if sys.version_info < (3, 7):
 try:
     from setuptools import setup, find_packages
 except ImportError:
-    print('Please install setuptools before installing the Juno_pipeline library.\n', 
+    print('Please install setuptools before installing the base_juno_pipeline library.\n', 
     file=sys.stderr)
     exit(1)
 
@@ -25,9 +25,9 @@ setup(
     description=juno_info.__description__,
     zip_safe=False,
     license=juno_info.__license__,
-    packages=find_packages(include=['juno_pipeline', 'juno_pipeline.*'], exclude='__main__'),
-    scripts=['juno_pipeline/base_juno_pipeline.py'],
-    package_data={'juno_pipeline': ['envs/*']},
+    packages=find_packages(include=['base_juno_pipeline', 'base_juno_pipeline.*']),
+    scripts=['base_juno_pipeline/base_juno_pipeline.py'],
+    package_data={'base_juno_pipeline': ['envs/*']},
     install_requires=[
         'dask',
         'mamba',
@@ -37,10 +37,10 @@ setup(
         'xlrd==1.2.0',
         'pyyaml>=5.4.1'
     ],
-    entry_points={
-        "console_scripts": [
-            "juno_pipeline = juno_pipeline:main"
-        ]
-    },
+    # entry_points={
+    #     "console_scripts": [
+    #         "juno_pipeline = base_juno_pipeline:main"
+    #     ]
+    # },
     include_package_data=True
 )
