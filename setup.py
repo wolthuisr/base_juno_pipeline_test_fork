@@ -35,7 +35,7 @@ setup(
         'snakemake>=6.1.0',
         'unittest2',
         'xlrd==1.2.0',
-        'pyyaml>=5.4.1'
+        'pyyaml>=5.0'
     ],
     # entry_points={
     #     "console_scripts": [
