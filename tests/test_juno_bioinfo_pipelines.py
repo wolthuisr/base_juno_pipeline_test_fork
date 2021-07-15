@@ -6,14 +6,49 @@ import unittest
 main_script_path = str(pathlib.Path(pathlib.Path(__file__).parent.absolute()).parent.absolute())
 path.insert(0, main_script_path)
 from base_juno_pipeline import base_juno_pipeline
+from base_juno_pipeline import helper_functions
 
+
+class TestJunoHelpers(unittest.TestCase):
+    """Testing Helper Functions"""
+
+    def test_git_url_of_base_juno_pipeline(self):
+        """Testing if the git URL is retrieved properly (taking this folder
+        as example"""
+        url = helper_functions.GitHelpers.get_repo_url(self, '.')
+        url_equal_package_url = url == b'https://github.com/RIVM-bioinformatics/base_juno_pipeline.git'
+        url_not_available = url == 'Not available. This might be because this folder is not a repository or it was downloaded manually instead of through the command line.'
+        correct_url_result = url_equal_package_url or url_not_available
+        self.assertTrue(correct_url_result)
+
+    def test_fail_when_dir_not_repo(self):
+        """Testing that the url is 'not available' when the directory is not
+        a git repo"""
+        self.assertEqual(helper_functions.GitHelpers.get_repo_url(self, 
+                                                                    os.path.expanduser('~')),
+                        'Not available. This might be because this folder is not a repository or it was downloaded manually instead of through the command line.')
+    
+    def test_get_commit_git(self):
+        """Testing that the git commit function works"""
+        self.assertIsInstance(helper_functions.GitHelpers.get_commit_git(self,
+                                                                        '.'), bytes)
+
+    def test_get_commit_git(self):
+        """Testing that the git commit function gives right output when no git repo"""
+        self.assertIsInstance(helper_functions.GitHelpers.get_commit_git(self,
+                                                                        os.path.expanduser('~')), str)
+        self.assertEqual(helper_functions.GitHelpers.get_commit_git(self,
+                                                                    os.path.expanduser('~')), 
+                        'Not available. This might be because this folder is not a repository or it was downloaded manually instead of through the command line.')
 
 
 class TestPipelineStartup(unittest.TestCase):
-    """Testing the pipeline startup (generating dict with samples) from general Juno pipelines"""
+    """Testing the pipeline startup (generating dict with samples) from general
+    Juno pipelines"""
     
     def setUpClass(): 
-        """Making fake directories and files to test different case scenarios for starting pipeline"""
+        """Making fake directories and files to test different case scenarios 
+        for starting pipeline"""
 
         fake_dirs = ['fake_dir_empty', 
                     'fake_dir_wsamples', 
@@ -60,21 +95,24 @@ class TestPipelineStartup(unittest.TestCase):
             os.system('rm -rf {}'.format(str(folder)))
 
     def test_nonexisting_dir(self):
-        """Testing the pipeline startup fails if the input directory does not exist"""
+        """Testing the pipeline startup fails if the input directory does not 
+        exist"""
         self.assertRaises(AssertionError, 
                             base_juno_pipeline.PipelineStartup, 
                             pathlib.Path('unexisting'), 
                             'both')
 
     def test_emptydir(self):
-        """Testing the pipeline startup fails if the input directory does not have expected files"""
+        """Testing the pipeline startup fails if the input directory does not 
+        have expected files"""
         self.assertRaises(ValueError, 
                             base_juno_pipeline.PipelineStartup, 
                             pathlib.Path('fake_dir_empty'), 
                             'both')
 
     def test_incompletedir(self):
-        """Testing the pipeline startup fails if the input directory is missing some of the fasta files for the fastq files"""
+        """Testing the pipeline startup fails if the input directory is 
+        missing some of the fasta files for the fastq files"""
         self.assertRaises(KeyError, 
                             base_juno_pipeline.PipelineStartup, 
                             pathlib.Path('fake_dir_incomplete'), 'both')
@@ -110,7 +148,8 @@ class TestPipelineStartup(unittest.TestCase):
         self.assertDictEqual(pipeline.sample_dict, expected_output)
 
     def test_files_smaller_than_minlen(self):
-        """Testing the pipeline startup fails if you set a min_file_size different than 0"""
+        """Testing the pipeline startup fails if you set a min_file_size 
+        different than 0"""
 
         self.assertRaises(ValueError, 
                             base_juno_pipeline.PipelineStartup, 
@@ -119,7 +158,8 @@ class TestPipelineStartup(unittest.TestCase):
                             min_file_size = 1000)
 
     def test_junodir_wnumericsamplenames(self):
-        """Testing the pipeline startup converts numeric file names to string"""
+        """Testing the pipeline startup converts numeric file names to 
+        string"""
 
         expected_output = {'1234': {'R1': str(pathlib.Path('fake_dir_juno').joinpath('clean_fastq', '1234_R1.fastq.gz')), 
                                         'R2': str(pathlib.Path('fake_dir_juno').joinpath('clean_fastq', '1234_R2.fastq.gz')), 
@@ -129,7 +169,8 @@ class TestPipelineStartup(unittest.TestCase):
         self.assertDictEqual(pipeline.sample_dict, expected_output)
 
     def test_string_accepted_as_inputdir(self):
-        """Testing the pipeline startup accepts string (not only pathlib.Path) as input"""
+        """Testing the pipeline startup accepts string (not only pathlib.Path)
+        as input"""
 
         expected_output = {'1234': {'R1': str(pathlib.Path('fake_dir_juno').joinpath('clean_fastq', '1234_R1.fastq.gz')), 
                                         'R2': str(pathlib.Path('fake_dir_juno').joinpath('clean_fastq/1234_R2.fastq.gz')), 
@@ -139,7 +180,8 @@ class TestPipelineStartup(unittest.TestCase):
         self.assertDictEqual(pipeline.sample_dict, expected_output)
 
     def test_fail_with_wrong_fastq_naming(self):
-        """Testing the pipeline startup fails with wrong fastq naming (name contains _1_ in the sample name)"""
+        """Testing the pipeline startup fails with wrong fastq naming (name 
+        contains _1_ in the sample name)"""
         self.assertRaises(KeyError, 
                             base_juno_pipeline.PipelineStartup, 
                             pathlib.Path('fake_wrong_fastq_names'), 

@@ -12,34 +12,9 @@ import subprocess
 from uuid import uuid4
 import yaml
 
+from base_juno_pipeline import helper_functions
 
-class JunoHelpers:
-    """Class with helper functions for the Juno pipelines"""
-
-    def color_text(self, text, color_code):
-        """Function to convert normal text to color text """
-        formatted_text = '\033[0;' + str(color_code) + 'm' + text + '\n\033[0;0m'
-        return formatted_text
-
-    def message_formatter(self, message):
-        """Function to convert normal text to yellow text (for an 
-        important message)"""
-        return self.color_text(text=message, color_code=33)
-
-    def error_formatter(self, message):
-        """Function to convert normal text to red text (for an error)"""
-        return self.color_text(text=message, color_code=33)
-
-    def validate_is_nonempty_file(self, file_path, min_file_size):
-        nonempty_file = (file_path.is_file() 
-                            and file_path.stat().st_size >= self.min_file_size)
-        if nonempty_file:
-            return True
-        else:
-            return False
-
-
-class PipelineStartup(JunoHelpers):
+class PipelineStartup(helper_functions.JunoHelpers):
     """Class with checkings for the input directory and to generate a 
     dictionary  with sample names and their corresponding input files 
     (sample_dict). Works for pipelines accepting fastq or fasta files 
@@ -183,7 +158,7 @@ class PipelineStartup(JunoHelpers):
 
 
 
-class RunSnakemake(JunoHelpers):
+class RunSnakemake(helper_functions.JunoHelpers):
     """Class with necessary input to run Snakemake"""
 
     def __init__(self,
@@ -237,24 +212,19 @@ class RunSnakemake(JunoHelpers):
         # self.run_snakemake()
 
 
-    def is_not_repo(self):
-        """Function to check whether the pipeline is a git repository
-        or whether it was downloaded as a zip file. Only if it is a 
-        git repository, the url and commit can be inquired"""
-        git_remote = subprocess.check_output(["git","remote", "-v"])
-        return git_remote == b''
+    # def is_not_repo(self):
+    #     """Function to check whether the pipeline is a git repository
+    #     or whether it was downloaded as a zip file. Only if it is a 
+    #     git repository, the url and commit can be inquired"""
+    #     git_remote = subprocess.check_output(["git","remote", "-v"])
+    #     return git_remote == b''
         
     def get_git_audit(self, git_file):
         """Function to get URL and commit from pipeline repo 
         (if downloaded through git)"""
         print(self.message_formatter(f"Collecting information about the Git repository of this pipeline (see {git_file})"))
-        if not self.is_not_repo():
-            git_audit = {"repo": subprocess.check_output(["git","config", "--get", "remote.origin.url"]).strip(),
-                        "commit": subprocess.check_output(["git","log", "-n", "1" "--pretty=format:'%H'"]).strip()}
-        else:
-            git_audit = {"repo": "NA (folder is not a git repo or was not cloned through git command)",
-                        "commit": "NA (folder is not a git repo or was not cloned through git command)"}
-
+        git_audit = {"repo": self.get_repo_url('.'),
+                    "commit": self.get_git_commit('.')}
         with open(git_file, 'w') as file:
             yaml.dump(git_audit, file, default_flow_style=False)
 
