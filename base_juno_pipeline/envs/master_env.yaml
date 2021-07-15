@@ -13,5 +13,5 @@ dependencies:
   - xlrd==1.2.0
   - unittest2
   - pip:
-    - PyYAML==5.4.1
+    - PyYAML
 
