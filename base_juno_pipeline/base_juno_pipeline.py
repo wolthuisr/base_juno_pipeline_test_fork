@@ -101,7 +101,7 @@ class PipelineStartup(helper_functions.JunoHelpers):
     def enlist_fastq_samples(self):
         """Function to enlist the fastq files found in the input 
         directory. Returns a dictionary with the form 
-        {sample: fastq_file}"""
+        {sample: {R1: fastq_file1, R2: fastq_file2}}"""
         pattern = re.compile("(.*?)(?:_S\d+_|_S\d+.|_|\.)(?:p)?R?(1|2)(?:_.*\.|\..*\.|\.)f(ast)?q(\.gz)?")
         samples = {}
         for file_ in self.__subdirs_['fastq'].iterdir():
@@ -115,7 +115,7 @@ class PipelineStartup(helper_functions.JunoHelpers):
     def enlist_fasta_samples(self):
         """Function to enlist the fasta files found in the input 
         directory. Returns a dictionary with the form 
-        {sample: fasta_file}"""
+        {sample: {assembly: fasta_file}}"""
         pattern = re.compile("(.*?).fasta")
         samples = {}
         for file_ in self.__subdirs_['fasta'].iterdir():
@@ -186,8 +186,8 @@ class RunSnakemake(helper_functions.JunoHelpers):
         self.pipeline_version=pipeline_version
         self.date_and_time=datetime.now().strftime('%d-%m-%Y %H:%M:%S')
         self.hostname=str(subprocess.check_output(['hostname']).strip())
-        self.output_dir=output_dir
-        self.workdir=workdir
+        self.output_dir=pathlib.Path(output_dir)
+        self.workdir=pathlib.Path(workdir)
         self.sample_sheet=sample_sheet
         self.user_parameters=user_parameters
         self.fixed_parameters=fixed_parameters
@@ -212,19 +212,12 @@ class RunSnakemake(helper_functions.JunoHelpers):
         # self.run_snakemake()
 
 
-    # def is_not_repo(self):
-    #     """Function to check whether the pipeline is a git repository
-    #     or whether it was downloaded as a zip file. Only if it is a 
-    #     git repository, the url and commit can be inquired"""
-    #     git_remote = subprocess.check_output(["git","remote", "-v"])
-    #     return git_remote == b''
-        
     def get_git_audit(self, git_file):
         """Function to get URL and commit from pipeline repo 
         (if downloaded through git)"""
         print(self.message_formatter(f"Collecting information about the Git repository of this pipeline (see {git_file})"))
         git_audit = {"repo": self.get_repo_url('.'),
-                    "commit": self.get_git_commit('.')}
+                    "commit": self.get_commit_git('.')}
         with open(git_file, 'w') as file:
             yaml.dump(git_audit, file, default_flow_style=False)
 
@@ -259,9 +252,7 @@ class RunSnakemake(helper_functions.JunoHelpers):
         config_file = self.path_to_audit.joinpath('log_parameters.yaml')
         samples_file = self.path_to_audit.joinpath('sample_sheet.yaml')
         audit_sample_sheet = subprocess.Popen(['cp', self.sample_sheet, samples_file])
-        audit_sample_sheet.wait(5)
         audit_userparams = subprocess.Popen(['cp', self.user_parameters, config_file])
-        audit_userparams.wait(5)
         return [git_file, conda_file, pipeline_file, config_file, samples_file]
 
     def run_snakemake(self):

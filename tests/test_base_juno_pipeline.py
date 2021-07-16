@@ -9,14 +9,56 @@ from base_juno_pipeline import base_juno_pipeline
 from base_juno_pipeline import helper_functions
 
 
-class TestJunoHelpers(unittest.TestCase):
+class TestTextJunoHelpers(unittest.TestCase):
+    """Testing Text Helper Functions"""
+    
+    def test_error_formatter(self):
+        """Testing that the error formatter does add the color codes to the text"""
+        JunoHelpers = helper_functions.JunoHelpers()
+        self.assertEqual(JunoHelpers.error_formatter('message'),
+                        '\033[0;31mmessage\n\033[0;0m')
+    
+    def test_message_formatter(self):
+        """Testing that the message formatter does add the color codes to the text"""
+        JunoHelpers = helper_functions.JunoHelpers()
+        self.assertEqual(JunoHelpers.message_formatter('message'),
+                        '\033[0;33mmessage\n\033[0;0m')
+
+
+class TestFileJunoHelpers(unittest.TestCase):
+    """Testing File Helper Functions"""
+
+    def test_validate_is_nonempty_file(self):
+        """Testing that the function to check whether a file is empty works.
+        It should return True if nonempty file"""
+        JunoHelpers = helper_functions.JunoHelpers()
+        nonempty_file = 'nonempty.txt'
+        with open(nonempty_file, 'w'):
+            print('x')
+        self.assertTrue(JunoHelpers.validate_is_nonempty_file(nonempty_file))
+        os.system(f'rm {nonempty_file}')
+    
+    def test_validate_is_nonempty_file(self):
+        """Testing that the function to check whether a file is empty works.
+        It should return True if file is empty but no min_file_size is given
+        and False if empty file and a min_file_size of at least 1"""
+        JunoHelpers = helper_functions.JunoHelpers()
+        empty_file = 'empty.txt'
+        open(empty_file, 'a').close()
+        self.assertTrue(JunoHelpers.validate_is_nonempty_file(empty_file))
+        self.assertFalse(JunoHelpers.validate_is_nonempty_file(empty_file, min_file_size = 1))
+        os.system(f'rm {empty_file}')
+
+
+class TestTextJunoHelpers(unittest.TestCase):
     """Testing Helper Functions"""
 
     def test_git_url_of_base_juno_pipeline(self):
         """Testing if the git URL is retrieved properly (taking this folder
         as example"""
-        url = helper_functions.GitHelpers.get_repo_url(self, '.')
-        url_equal_package_url = url == b'https://github.com/RIVM-bioinformatics/base_juno_pipeline.git'
+        JunoHelpers = helper_functions.JunoHelpers()
+        url = JunoHelpers.get_repo_url(main_script_path)
+        url_equal_package_url = url == 'https://github.com/RIVM-bioinformatics/base_juno_pipeline.git'
         url_not_available = url == 'Not available. This might be because this folder is not a repository or it was downloaded manually instead of through the command line.'
         correct_url_result = url_equal_package_url or url_not_available
         self.assertTrue(correct_url_result)
@@ -24,21 +66,22 @@ class TestJunoHelpers(unittest.TestCase):
     def test_fail_when_dir_not_repo(self):
         """Testing that the url is 'not available' when the directory is not
         a git repo"""
-        self.assertEqual(helper_functions.GitHelpers.get_repo_url(self, 
-                                                                    os.path.expanduser('~')),
+        JunoHelpers = helper_functions.JunoHelpers()
+        self.assertEqual(JunoHelpers.get_repo_url(os.path.expanduser('~')),
                         'Not available. This might be because this folder is not a repository or it was downloaded manually instead of through the command line.')
     
-    def test_get_commit_git(self):
+    def test_get_commit_git_from_repo(self):
         """Testing that the git commit function works"""
-        self.assertIsInstance(helper_functions.GitHelpers.get_commit_git(self,
-                                                                        '.'), bytes)
+        JunoHelpers = helper_functions.JunoHelpers()
+        commit_available = JunoHelpers.get_commit_git(main_script_path) == 'Not available. This might be because this folder is not a repository or it was downloaded manually instead of through the command line.'
+        self.assertIsInstance(JunoHelpers.get_commit_git(main_script_path), str)
+        self.assertFalse(commit_available)
 
-    def test_get_commit_git(self):
+    def test_get_commit_git_from_non_git_repo(self):
         """Testing that the git commit function gives right output when no git repo"""
-        self.assertIsInstance(helper_functions.GitHelpers.get_commit_git(self,
-                                                                        os.path.expanduser('~')), str)
-        self.assertEqual(helper_functions.GitHelpers.get_commit_git(self,
-                                                                    os.path.expanduser('~')), 
+        JunoHelpers = helper_functions.JunoHelpers()
+        self.assertIsInstance(JunoHelpers.get_commit_git(os.path.expanduser('~')), str)
+        self.assertEqual(JunoHelpers.get_commit_git(os.path.expanduser('~')), 
                         'Not available. This might be because this folder is not a repository or it was downloaded manually instead of through the command line.')
 
 
@@ -186,6 +229,55 @@ class TestPipelineStartup(unittest.TestCase):
                             base_juno_pipeline.PipelineStartup, 
                             pathlib.Path('fake_wrong_fastq_names'), 
                             'fastq')
+
+
+class TestRunSnakemake(unittest.TestCase):
+    """Testing the RunSnakemake class. At least testing that it is constructed
+    properly (not testing the run itself)"""
+
+    def test_fake_run(self):
+        open('sample_sheet.yaml', 'a').close()
+        open('user_parameters.yaml', 'a').close()
+        open('fixed_parameters.yaml', 'a').close()
+        fake_run = base_juno_pipeline.RunSnakemake(pipeline_name='fake_pipeline',
+                                                    pipeline_version='0.1',
+                                                    output_dir='fake_output_dir',
+                                                    workdir=main_script_path,
+                                                    sample_sheet='sample_sheet.yaml',
+                                                    user_parameters='user_parameters.yaml',
+                                                    fixed_parameters='fixed_parameters.yaml')
+        audit_trail_path = pathlib.Path('fake_output_dir', 'audit_trail')
+        self.assertIsInstance(fake_run.date_and_time, str)
+        self.assertEqual(fake_run.workdir, pathlib.Path(main_script_path))
+        self.assertTrue(pathlib.Path('fake_output_dir').is_dir())
+        self.assertTrue(audit_trail_path.is_dir())
+        self.assertTrue(audit_trail_path.joinpath('log_conda.txt').is_file())
+        self.assertTrue(audit_trail_path.joinpath('log_git.yaml').is_file())
+        self.assertTrue(audit_trail_path.joinpath('log_parameters.yaml').is_file())
+        self.assertTrue(audit_trail_path.joinpath('log_pipeline.yaml').is_file())
+        self.assertTrue(audit_trail_path.joinpath('sample_sheet.yaml').is_file())
+
+        pipeline_name_in_audit_trail = False
+        pipeline_version_in_audit_trail = False
+        file1 = open(audit_trail_path.joinpath('log_pipeline.yaml'), "r")
+        for line in file1:  
+            if 'fake_pipeline' in line:
+                pipeline_name_in_audit_trail = True
+            if '0.1' in line:
+                pipeline_version_in_audit_trail = True
+        self.assertTrue(pipeline_name_in_audit_trail)
+        self.assertTrue(pipeline_version_in_audit_trail)
+        
+        repo_url_in_audit_trail = False
+        file1 = open(audit_trail_path.joinpath('log_git.yaml'), "r")
+        for line in file1:  
+            if 'https://github.com/RIVM-bioinformatics/base_juno_pipeline.git' in line:
+                repo_url_in_audit_trail = True
+        self.assertTrue(repo_url_in_audit_trail)
+
+        os.system('rm sample_sheet.yaml user_parameters.yaml fixed_parameters.yaml')
+        os.system('rm -rf fake_output_dir')
+        
 
 
 if __name__ == '__main__':

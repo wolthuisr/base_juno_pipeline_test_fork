@@ -2,8 +2,8 @@ import subprocess
 import pathlib
 
 class TextHelpers:
-    """Class with helper functions for the Juno pipelines"""
-
+    """Class with helper functions for text manipulation"""
+    
     def color_text(self, text, color_code):
         """Function to convert normal text to color text """
         formatted_text = '\033[0;' + str(color_code) + 'm' + text + '\n\033[0;0m'
@@ -16,11 +16,16 @@ class TextHelpers:
 
     def error_formatter(self, message):
         """Function to convert normal text to red text (for an error)"""
-        return self.color_text(text=message, color_code=33)
+        return self.color_text(text=message, color_code=31)
 
-    def validate_is_nonempty_file(self, file_path, min_file_size):
+
+class FileHelpers:
+    """Class with helper functions for file/dir validation and manipulation"""
+
+    def validate_is_nonempty_file(self, file_path, min_file_size = 0):
+        file_path = pathlib.Path(file_path)
         nonempty_file = (file_path.is_file() 
-                            and file_path.stat().st_size >= self.min_file_size)
+                            and file_path.stat().st_size >= min_file_size)
         if nonempty_file:
             return True
         else:
@@ -28,6 +33,8 @@ class TextHelpers:
 
 
 class GitHelpers:
+    """Class with helper functions for handling git repositories"""
+    
     def download_git_repo(self, version, url, dest_dir):
         """Function to download a git repo"""
         try:
@@ -61,6 +68,7 @@ class GitHelpers:
         try:
             url = subprocess.check_output(["git","config", "--get", "remote.origin.url"],
                                             cwd = f'{str(gitrepo_dir)}').strip()
+            url = url.decode()
         except:
             url = "Not available. This might be because this folder is not a repository or it was downloaded manually instead of through the command line."
         return url
@@ -73,10 +81,11 @@ class GitHelpers:
                                             f'{str(gitrepo_dir)}/.git', 
                                             'log', '-n', '1', '--pretty=format:"%H"'],
                                             timeout = 30)
+            commit = commit.decode()
         except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
             commit = "Not available. This might be because this folder is not a repository or it was downloaded manually instead of through the command line."                
         return commit
 
 
-class JunoHelpers(TextHelpers, GitHelpers):
+class JunoHelpers(TextHelpers, FileHelpers, GitHelpers):
     pass
