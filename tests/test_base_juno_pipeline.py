@@ -53,6 +53,8 @@ class TestFileJunoHelpers(unittest.TestCase):
 class TestTextJunoHelpers(unittest.TestCase):
     """Testing Helper Functions"""
 
+    @unittest.skipIf(not pathlib.Path(main_script_path).joinpath('.git').exists(),
+                    "Skipped if the directory containing the pipeline is not a git repository")
     def test_git_url_of_base_juno_pipeline(self):
         """Testing if the git URL is retrieved properly (taking this folder
         as example"""
@@ -268,12 +270,13 @@ class TestRunSnakemake(unittest.TestCase):
         self.assertTrue(pipeline_name_in_audit_trail)
         self.assertTrue(pipeline_version_in_audit_trail)
         
-        repo_url_in_audit_trail = False
-        file1 = open(audit_trail_path.joinpath('log_git.yaml'), "r")
-        for line in file1:  
-            if 'https://github.com/RIVM-bioinformatics/base_juno_pipeline.git' in line:
-                repo_url_in_audit_trail = True
-        self.assertTrue(repo_url_in_audit_trail)
+        if pathlib.Path(main_script_path).joinpath('.git').exists():
+            repo_url_in_audit_trail = False
+            file1 = open(audit_trail_path.joinpath('log_git.yaml'), "r")
+            for line in file1:  
+                if 'https://github.com/RIVM-bioinformatics/base_juno_pipeline.git' in line:
+                    repo_url_in_audit_trail = True
+            self.assertTrue(repo_url_in_audit_trail)
 
         os.system('rm sample_sheet.yaml user_parameters.yaml fixed_parameters.yaml')
         os.system('rm -rf fake_output_dir')
