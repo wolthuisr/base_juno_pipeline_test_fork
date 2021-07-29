@@ -291,8 +291,7 @@ class TestRunSnakemake(unittest.TestCase):
         self.assertTrue(pipeline_version_in_audit_trail)
         
         try:
-            is_repo = subprocess.check_output(['git', 'rev-parse', '--git-dir'], 
-                                                cwd=main_script_path)
+            is_repo = pathlib.Path('/data/BioGrid/hernanda/').exists()
         except:
             is_repo = False
 
