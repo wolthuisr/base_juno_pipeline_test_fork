@@ -78,7 +78,9 @@ class PipelineStartup(helper_functions.JunoHelpers):
                 if str(item).endswith(extension):
                     return True
                     break 
-        raise ValueError(f'Input directory ({self.input_dir}) does not contain files that end with one of the expected extensions {extension}.')
+        raise ValueError(self.error_formatter(
+                                f'Input directory ({self.input_dir}) does not contain files that end with one of the expected extensions {extension}.'
+                                            ))
 
     def validate_input_dir(self):
         """Function to check that input directory is indeed an existing 
@@ -208,8 +210,6 @@ class RunSnakemake(helper_functions.JunoHelpers):
         # Generate pipeline audit trail
         self.path_to_audit.mkdir(parents=True, exist_ok=True)
         self.audit_trail = self.generate_audit_trail()
-        # Run pipeline
-        # self.run_snakemake()
 
 
     def get_git_audit(self, git_file):
@@ -274,28 +274,27 @@ class RunSnakemake(helper_functions.JunoHelpers):
                     -M {resources.mem_gb}G \
                     -W 60" % (str(self.queue), str(cluster_log_dir), str(cluster_log_dir))
         
-        try:
-            snakemake(self.snakefile,
-                            workdir=self.workdir,
-                            configfiles=[self.user_parameters, self.fixed_parameters],
-                            config={"sample_sheet": str(self.sample_sheet)},
-                            cores=self.cores,
-                            nodes=self.cores,
-                            cluster=cluster,
-                            jobname=self.pipeline_name + "_{name}.jobid{jobid}",
-                            use_conda=self.useconda,
-                            conda_frontend=self.conda_frontend,
-                            use_singularity=self.usesingularity,
-                            singularity_args=self.singularityargs,
-                            keepgoing=True,
-                            printshellcmds=True,
-                            force_incomplete=self.rerunincomplete,
-                            restart_times=self.restarttimes, 
-                            latency_wait=self.latency,
-                            unlock=self.unlock,
-                            dryrun=self.dryrun)
-        except:
-            print(self.error_formatter(f"An error occured while running the {self.pipeline_name} pipeline."))
-            raise
-
+        pipeline_run_successful = snakemake(self.snakefile,
+                                    workdir=self.workdir,
+                                    configfiles=[self.user_parameters, self.fixed_parameters],
+                                    config={"sample_sheet": str(self.sample_sheet)},
+                                    cores=self.cores,
+                                    nodes=self.cores,
+                                    cluster=cluster,
+                                    jobname=self.pipeline_name + "_{name}.jobid{jobid}",
+                                    use_conda=self.useconda,
+                                    conda_frontend=self.conda_frontend,
+                                    use_singularity=self.usesingularity,
+                                    singularity_args=self.singularityargs,
+                                    keepgoing=True,
+                                    printshellcmds=True,
+                                    force_incomplete=self.rerunincomplete,
+                                    restart_times=self.restarttimes, 
+                                    latency_wait=self.latency,
+                                    unlock=self.unlock,
+                                    dryrun=self.dryrun)
+        assert pipeline_run_successful, self.error_formatter(f"An error occured while running the {self.pipeline_name} pipeline.")
         print(self.message_formatter(f"Finished running {self.pipeline_name} pipeline!"))
+        return pipeline_run_successful
+
+        

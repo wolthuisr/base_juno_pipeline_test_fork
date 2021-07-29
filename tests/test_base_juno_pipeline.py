@@ -1,6 +1,7 @@
 import os
 import pathlib
 from sys import path
+import subprocess
 import unittest
 
 main_script_path = str(pathlib.Path(pathlib.Path(__file__).parent.absolute()).parent.absolute())
@@ -53,27 +54,36 @@ class TestFileJunoHelpers(unittest.TestCase):
 class TestTextJunoHelpers(unittest.TestCase):
     """Testing Helper Functions"""
 
-    @unittest.skipIf(not pathlib.Path(main_script_path).joinpath('.git').exists(),
-                    "Skipped if the directory containing the pipeline is not a git repository")
     def test_git_url_of_base_juno_pipeline(self):
         """Testing if the git URL is retrieved properly (taking this folder
-        as example"""
+        as example
+        """
+        try:
+            is_repo = subprocess.check_output(['git', 'rev-parse', '--git-dir'], 
+                                                cwd=main_script_path)
+        except:
+            self.skipTest("The directory containint this package is not a git repo, therefore test was skipped")
+        
         JunoHelpers = helper_functions.JunoHelpers()
         url = JunoHelpers.get_repo_url(main_script_path)
-        url_equal_package_url = url == 'https://github.com/RIVM-bioinformatics/base_juno_pipeline.git'
-        url_not_available = url == 'Not available. This might be because this folder is not a repository or it was downloaded manually instead of through the command line.'
-        correct_url_result = url_equal_package_url or url_not_available
-        self.assertTrue(correct_url_result)
+        url_is_correct = url == 'https://github.com/RIVM-bioinformatics/base_juno_pipeline.git'
+        self.assertTrue(url_is_correct)
 
     def test_fail_when_dir_not_repo(self):
         """Testing that the url is 'not available' when the directory is not
-        a git repo"""
+        a git repo
+        """
         JunoHelpers = helper_functions.JunoHelpers()
         self.assertEqual(JunoHelpers.get_repo_url(os.path.expanduser('~')),
                         'Not available. This might be because this folder is not a repository or it was downloaded manually instead of through the command line.')
     
     def test_get_commit_git_from_repo(self):
         """Testing that the git commit function works"""
+        try:
+            is_repo = subprocess.check_output(['git', 'rev-parse', '--git-dir'], 
+                                                cwd=main_script_path)
+        except:
+            self.skipTest("The directory containint this package is not a git repo, therefore test was skipped")
         JunoHelpers = helper_functions.JunoHelpers()
         commit_available = JunoHelpers.get_commit_git(main_script_path) == 'Not available. This might be because this folder is not a repository or it was downloaded manually instead of through the command line.'
         self.assertIsInstance(JunoHelpers.get_commit_git(main_script_path), str)
@@ -117,8 +127,8 @@ class TestPipelineStartup(unittest.TestCase):
                     'fake_dir_juno/clean_fastq/1234_R1.fastq.gz',
                     'fake_dir_juno/clean_fastq/1234_R2.fastq.gz', 
                     'fake_dir_juno/de_novo_assembly_filtered/1234.fasta',
-                    'fake_wrong_fastq_names/1234_1_R1.fastq.gz',
-                    'fake_wrong_fastq_names/1234_1_R2.fastq.gz']     
+                    'fake_wrong_fastq_names/1234_S001_PE_R1.fastq.gz',
+                    'fake_wrong_fastq_names/1234_S001_PE_R2.fastq.gz']     
                     
         for folder in fake_dirs:
             pathlib.Path(folder).mkdir(exist_ok = True)
@@ -237,10 +247,16 @@ class TestRunSnakemake(unittest.TestCase):
     """Testing the RunSnakemake class. At least testing that it is constructed
     properly (not testing the run itself)"""
 
-    def test_fake_run(self):
+    def setUpClass():
         open('sample_sheet.yaml', 'a').close()
         open('user_parameters.yaml', 'a').close()
         open('fixed_parameters.yaml', 'a').close()
+
+    def tearDownClass():
+        os.system('rm sample_sheet.yaml user_parameters.yaml fixed_parameters.yaml')
+        os.system('rm -rf fake_output_dir')
+
+    def test_fake_run_setup(self):       
         fake_run = base_juno_pipeline.RunSnakemake(pipeline_name='fake_pipeline',
                                                     pipeline_version='0.1',
                                                     output_dir='fake_output_dir',
@@ -270,7 +286,13 @@ class TestRunSnakemake(unittest.TestCase):
         self.assertTrue(pipeline_name_in_audit_trail)
         self.assertTrue(pipeline_version_in_audit_trail)
         
-        if pathlib.Path(main_script_path).joinpath('.git').exists():
+        try:
+            is_repo = subprocess.check_output(['git', 'rev-parse', '--git-dir'], 
+                                                cwd=main_script_path)
+        except:
+            is_repo = False
+
+        if is_repo:
             repo_url_in_audit_trail = False
             file1 = open(audit_trail_path.joinpath('log_git.yaml'), "r")
             for line in file1:  
@@ -278,8 +300,7 @@ class TestRunSnakemake(unittest.TestCase):
                     repo_url_in_audit_trail = True
             self.assertTrue(repo_url_in_audit_trail)
 
-        os.system('rm sample_sheet.yaml user_parameters.yaml fixed_parameters.yaml')
-        os.system('rm -rf fake_output_dir')
+        
         
 
 
