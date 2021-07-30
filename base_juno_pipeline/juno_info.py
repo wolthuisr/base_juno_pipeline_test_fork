@@ -1,4 +1,4 @@
-__package_name__ = 'Juno bacteriology pipelines'
+__package_name__ = 'base_juno_pipeline'
 __authors__ = 'Alejandra Hernández Segura'
 __email__ = 'alejandra.hernandez.segura@rivm.nl'
 __license__ = 'AGPLv3'
