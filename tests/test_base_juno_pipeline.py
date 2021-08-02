@@ -275,9 +275,9 @@ class TestRunSnakemake(unittest.TestCase):
         self.assertTrue(audit_trail_path.is_dir())
         self.assertTrue(audit_trail_path.joinpath('log_conda.txt').is_file())
         self.assertTrue(audit_trail_path.joinpath('log_git.yaml').is_file())
-        self.assertTrue(audit_trail_path.joinpath('log_parameters.yaml').is_file())
         self.assertTrue(audit_trail_path.joinpath('log_pipeline.yaml').is_file())
         self.assertTrue(audit_trail_path.joinpath('sample_sheet.yaml').is_file())
+        self.assertTrue(audit_trail_path.joinpath('user_parameters.yaml').is_file())
 
         pipeline_name_in_audit_trail = False
         pipeline_version_in_audit_trail = False

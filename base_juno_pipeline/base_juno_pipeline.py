@@ -241,7 +241,7 @@ class RunSnakemake(helper_functions.JunoHelpers):
         assert pathlib.Path(self.sample_sheet).exists(), \
             f"The sample sheet ({str(sample_sheet)}) does not exist. This sample sheet is generated before starting your pipeline. Something must have gone wrong while creating it."
         assert pathlib.Path(self.user_parameters).exists(), \
-            f"The provided user_parameters ({','.join(configfiles)}) was not created properly or was deleted before starting the pipeline"
+            f"The provided user_parameters ({','.join(self.user_parameters)}) was not created properly or was deleted before starting the pipeline"
 
         git_file = self.path_to_audit.joinpath('log_git.yaml')
         self.get_git_audit(git_file)
@@ -249,11 +249,11 @@ class RunSnakemake(helper_functions.JunoHelpers):
         self.get_conda_audit(conda_file)
         pipeline_file = self.path_to_audit.joinpath('log_pipeline.yaml')
         self.get_pipeline_audit(pipeline_file)
-        config_file = self.path_to_audit.joinpath('log_parameters.yaml')
+        user_parameters_file = self.path_to_audit.joinpath('user_parameters.yaml')
         samples_file = self.path_to_audit.joinpath('sample_sheet.yaml')
         audit_sample_sheet = subprocess.Popen(['cp', self.sample_sheet, samples_file])
-        audit_userparams = subprocess.Popen(['cp', self.user_parameters, config_file])
-        return [git_file, conda_file, pipeline_file, config_file, samples_file]
+        audit_userparams = subprocess.Popen(['cp', self.user_parameters, user_parameters_file])
+        return [git_file, conda_file, pipeline_file, user_parameters_file, samples_file]
 
     def run_snakemake(self):
 
