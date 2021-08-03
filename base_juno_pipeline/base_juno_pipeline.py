@@ -208,21 +208,22 @@ class RunSnakemake(helper_functions.JunoHelpers):
         self.restarttimes=restarttimes
         self.latency=latency_wait
         # Generate pipeline audit trail
-        self.path_to_audit.mkdir(parents=True, exist_ok=True)
-        self.audit_trail = self.generate_audit_trail()
+        if not self.dryrun or self.unlock:
+            self.path_to_audit.mkdir(parents=True, exist_ok=True)
+            self.audit_trail = self.generate_audit_trail()
 
 
     def get_git_audit(self, git_file):
         """Function to get URL and commit from pipeline repo 
         (if downloaded through git)"""
-        print(self.message_formatter(f"Collecting information about the Git repository of this pipeline (see {git_file})"))
+        print(self.message_formatter(f"Collecting information about the Git repository of this pipeline (see {str(git_file)})"))
         git_audit = {"repo": self.get_repo_url('.'),
                     "commit": self.get_commit_git('.')}
         with open(git_file, 'w') as file:
             yaml.dump(git_audit, file, default_flow_style=False)
 
     def get_pipeline_audit(self, pipeline_file):
-        print(self.message_formatter("Collecting information about the pipeline (see {pipeline_file})"))
+        print(self.message_formatter(f"Collecting information about the pipeline (see {str(pipeline_file)})"))
         pipeline_info = {'pipeline_name': self.pipeline_name,
                         'pipeline_version': self.pipeline_version,
                         'timestamp': self.date_and_time,
@@ -241,16 +242,17 @@ class RunSnakemake(helper_functions.JunoHelpers):
         assert pathlib.Path(self.sample_sheet).exists(), \
             f"The sample sheet ({str(sample_sheet)}) does not exist. This sample sheet is generated before starting your pipeline. Something must have gone wrong while creating it."
         assert pathlib.Path(self.user_parameters).exists(), \
-            f"The provided user_parameters ({','.join(self.user_parameters)}) was not created properly or was deleted before starting the pipeline"
+            f"The provided user_parameters ({self.user_parameters}) was not created properly or was deleted before starting the pipeline"
 
         git_file = self.path_to_audit.joinpath('log_git.yaml')
-        self.get_git_audit(git_file)
         conda_file = self.path_to_audit.joinpath('log_conda.txt')
-        self.get_conda_audit(conda_file)
         pipeline_file = self.path_to_audit.joinpath('log_pipeline.yaml')
-        self.get_pipeline_audit(pipeline_file)
         user_parameters_audit_file = self.path_to_audit.joinpath('user_parameters.yaml')
         samples_audit_file = self.path_to_audit.joinpath('sample_sheet.yaml')
+        
+        self.get_git_audit(git_file)
+        self.get_conda_audit(conda_file)
+        self.get_pipeline_audit(pipeline_file)
         subprocess.run(['cp', self.sample_sheet, samples_audit_file],
                                             check=True, timeout=60)
         subprocess.run(['cp', self.user_parameters, user_parameters_audit_file],

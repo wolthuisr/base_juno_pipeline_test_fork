@@ -260,6 +260,26 @@ class TestRunSnakemake(unittest.TestCase):
         os.system('rm sample_sheet.yaml user_parameters.yaml fixed_parameters.yaml')
         os.system('rm -rf fake_output_dir')
 
+    def test_fake_dryrun_setup(self):       
+        fake_run = base_juno_pipeline.RunSnakemake(pipeline_name='fake_pipeline',
+                                                    pipeline_version='0.1',
+                                                    output_dir='fake_output_dir',
+                                                    workdir=main_script_path,
+                                                    sample_sheet='sample_sheet.yaml',
+                                                    user_parameters='user_parameters.yaml',
+                                                    fixed_parameters='fixed_parameters.yaml',
+                                                    dryrun=True)
+        audit_trail_path = pathlib.Path('fake_output_dir', 'audit_trail')
+        self.assertIsInstance(fake_run.date_and_time, str)
+        self.assertEqual(fake_run.workdir, pathlib.Path(main_script_path))
+        self.assertFalse(pathlib.Path('fake_output_dir').is_dir())
+        self.assertFalse(audit_trail_path.is_dir())
+        self.assertFalse(audit_trail_path.joinpath('log_conda.txt').is_file())
+        self.assertFalse(audit_trail_path.joinpath('log_git.yaml').is_file())
+        self.assertFalse(audit_trail_path.joinpath('log_pipeline.yaml').is_file())
+        self.assertFalse(audit_trail_path.joinpath('sample_sheet.yaml').is_file())
+        self.assertFalse(audit_trail_path.joinpath('user_parameters.yaml').is_file())
+            
     def test_fake_run_setup(self):       
         fake_run = base_juno_pipeline.RunSnakemake(pipeline_name='fake_pipeline',
                                                     pipeline_version='0.1',
@@ -281,12 +301,12 @@ class TestRunSnakemake(unittest.TestCase):
 
         pipeline_name_in_audit_trail = False
         pipeline_version_in_audit_trail = False
-        file1 = open(audit_trail_path.joinpath('log_pipeline.yaml'), "r")
-        for line in file1:  
-            if 'fake_pipeline' in line:
-                pipeline_name_in_audit_trail = True
-            if '0.1' in line:
-                pipeline_version_in_audit_trail = True
+        with open(audit_trail_path.joinpath('log_pipeline.yaml'), "r") as git_pipeline_trail_file:
+            for line in git_pipeline_trail_file:  
+                if 'fake_pipeline' in line:
+                    pipeline_name_in_audit_trail = True
+                if '0.1' in line:
+                    pipeline_version_in_audit_trail = True
         self.assertTrue(pipeline_name_in_audit_trail)
         self.assertTrue(pipeline_version_in_audit_trail)
         
@@ -297,10 +317,10 @@ class TestRunSnakemake(unittest.TestCase):
 
         if is_repo:
             repo_url_in_audit_trail = False
-            file1 = open(audit_trail_path.joinpath('log_git.yaml'), "r")
-            for line in file1:  
-                if 'https://github.com/RIVM-bioinformatics/base_juno_pipeline.git' in line:
-                    repo_url_in_audit_trail = True
+            with open(audit_trail_path.joinpath('log_git.yaml'), "r") as git_audit_trail_file:
+                for line in git_audit_trail_file:  
+                    if 'https://github.com/RIVM-bioinformatics/base_juno_pipeline.git' in line:
+                        repo_url_in_audit_trail = True
             self.assertTrue(repo_url_in_audit_trail)
 
         
