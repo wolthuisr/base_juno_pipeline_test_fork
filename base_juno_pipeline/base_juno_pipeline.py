@@ -249,11 +249,13 @@ class RunSnakemake(helper_functions.JunoHelpers):
         self.get_conda_audit(conda_file)
         pipeline_file = self.path_to_audit.joinpath('log_pipeline.yaml')
         self.get_pipeline_audit(pipeline_file)
-        user_parameters_file = self.path_to_audit.joinpath('user_parameters.yaml')
-        samples_file = self.path_to_audit.joinpath('sample_sheet.yaml')
-        audit_sample_sheet = subprocess.Popen(['cp', self.sample_sheet, samples_file])
-        audit_userparams = subprocess.Popen(['cp', self.user_parameters, user_parameters_file])
-        return [git_file, conda_file, pipeline_file, user_parameters_file, samples_file]
+        user_parameters_audit_file = self.path_to_audit.joinpath('user_parameters.yaml')
+        samples_audit_file = self.path_to_audit.joinpath('sample_sheet.yaml')
+        subprocess.run(['cp', self.sample_sheet, samples_audit_file],
+                                            check=True, timeout=60)
+        subprocess.run(['cp', self.user_parameters, user_parameters_audit_file],
+                                            check=True, timeout=60)
+        return [git_file, conda_file, pipeline_file, user_parameters_audit_file, samples_audit_file]
 
     def run_snakemake(self):
 
