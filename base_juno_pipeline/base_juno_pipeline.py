@@ -28,21 +28,22 @@ class PipelineStartup(helper_functions.JunoHelpers):
         self.input_dir = pathlib.Path(input_dir)
         self.input_type = input_type
         self.min_file_size = int(min_file_size)
+        self.start_juno_pipeline()
 
+    def start_juno_pipeline(self):
         assert self.input_dir.is_dir(), \
-            f"The provided input directory ({input_dir}) does not exist. Please provide an existing directory"
+            f"The provided input directory ({str(self.input_dir)}) does not exist. Please provide an existing directory"
         assert self.input_type in ['fastq', 'fasta', 'both'], \
             "input_type to be checked can only be 'fastq', 'fasta' or 'both'"
-        
         self.unique_id = uuid4()
-        self.__subdirs_ = self.define_input_subdirs()
-        self.validate_input_dir()
+        self.__subdirs_ = self.__define_input_subdirs()
+        self.__validate_input_dir()
         print("Making a list of samples to be processed in this pipeline run...")
         self.sample_dict = self.make_sample_dict()
         print("Validating that all expected input files per sample are present in the input directory...")
         self.validate_sample_dict()
 
-    def input_dir_is_juno_assembly_output(self):
+    def __input_dir_is_juno_assembly_output(self):
         """Function to check whether the input directory is actually
         the output of the Juno_assembly pipeline. The Juno_assembly 
         pipeline is often the first step for downstream analyses."""
@@ -53,7 +54,7 @@ class PipelineStartup(helper_functions.JunoHelpers):
         else:
             return False
 
-    def define_input_subdirs(self):
+    def __define_input_subdirs(self):
         """Function to check whether the input is from the Juno assembly 
         pipeline or just a simple input directory"""
         # Only when the input_dir comes from the Juno-assembly pipeline 
@@ -61,14 +62,14 @@ class PipelineStartup(helper_functions.JunoHelpers):
         # folder (fastq are then expected in a subfolder called 
         # <input_dir>/clean_fastq and the fasta assembly files are
         # expected in a subfolder called <input_dir>/de_novo_assembly_filtered)
-        if self.input_dir_is_juno_assembly_output():
+        if self.__input_dir_is_juno_assembly_output():
             return {'fastq': self.input_dir.joinpath('clean_fastq'),
                     'fasta': self.input_dir.joinpath('de_novo_assembly_filtered')}
         else:
             return {'fastq': self.input_dir,
                     'fasta': self.input_dir}
 
-    def validate_input_subdir(self, 
+    def __validate_input_subdir(self, 
                                 input_subdir, 
                                 extension=('.fastq', '.fastq.gz', '.fq', '.fq.gz', '.fasta')):
         """Function to validate whether the subdirectories (if applicable)
@@ -82,25 +83,25 @@ class PipelineStartup(helper_functions.JunoHelpers):
                                 f'Input directory ({self.input_dir}) does not contain files that end with one of the expected extensions {extension}.'
                                             ))
 
-    def validate_input_dir(self):
+    def __validate_input_dir(self):
         """Function to check that input directory is indeed an existing 
         directory that contains files with the expected extension (fastq
         or fasta)"""
     
         if self.input_type == 'fastq':
-            return self.validate_input_subdir(self.__subdirs_['fastq'], 
+            return self.__validate_input_subdir(self.__subdirs_['fastq'], 
                                                 ('.fastq', '.fastq.gz', '.fq', '.fq.gz'))
         elif self.input_type == 'fasta':
-            return self.validate_input_subdir(self.__subdirs_['fasta'], 
+            return self.__validate_input_subdir(self.__subdirs_['fasta'], 
                                                 ('.fasta'))
         else:
-            fastq_subdir_validated = self.validate_input_subdir(self.__subdirs_['fastq'], 
+            fastq_subdir_validated = self.__validate_input_subdir(self.__subdirs_['fastq'], 
                                                                 ('.fastq', '.fastq.gz', '.fq', '.fq.gz'))
-            fasta_subdir_validated = self.validate_input_subdir(self.__subdirs_['fasta'], 
+            fasta_subdir_validated = self.__validate_input_subdir(self.__subdirs_['fasta'], 
                                                                 ('.fasta'))
             return (fastq_subdir_validated and fasta_subdir_validated)
 
-    def enlist_fastq_samples(self):
+    def __enlist_fastq_samples(self):
         """Function to enlist the fastq files found in the input 
         directory. Returns a dictionary with the form 
         {sample: {R1: fastq_file1, R2: fastq_file2}}"""
@@ -114,7 +115,7 @@ class PipelineStartup(helper_functions.JunoHelpers):
                     sample[f"R{match.group(2)}"] = str(file_)        
         return samples
 
-    def enlist_fasta_samples(self):
+    def __enlist_fasta_samples(self):
         """Function to enlist the fasta files found in the input 
         directory. Returns a dictionary with the form 
         {sample: {assembly: fasta_file}}"""
@@ -132,12 +133,12 @@ class PipelineStartup(helper_functions.JunoHelpers):
         """Function to make a sample sheet from the input directory (expecting 
         either fastq or fasta files as input)"""
         if self.input_type == 'fastq':
-            samples = self.enlist_fastq_samples()
+            samples = self.__enlist_fastq_samples()
         elif self.input_type == 'fasta':
-            samples = self.enlist_fasta_samples()
+            samples = self.__enlist_fasta_samples()
         else:
-            samples = self.enlist_fastq_samples()
-            samples_fasta = self.enlist_fasta_samples()
+            samples = self.__enlist_fastq_samples()
+            samples_fasta = self.__enlist_fasta_samples()
             for k in samples.keys():
                 samples[k]['assembly'] = samples_fasta[k]['assembly']
         return samples
@@ -190,8 +191,6 @@ class RunSnakemake(helper_functions.JunoHelpers):
                 **kwargs):
         self.pipeline_name=pipeline_name
         self.pipeline_version=pipeline_version
-        self.date_and_time=datetime.now().strftime('%d-%m-%Y %H:%M:%S')
-        self.hostname=str(subprocess.check_output(['hostname']).strip())
         self.output_dir=pathlib.Path(output_dir)
         self.workdir=pathlib.Path(workdir)
         self.sample_sheet=sample_sheet
@@ -216,10 +215,14 @@ class RunSnakemake(helper_functions.JunoHelpers):
         self.latency=latency_wait
         self.kwargs = kwargs
         # Generate pipeline audit trail
+        self.get_run_info()
         if not self.dryrun or self.unlock:
             self.path_to_audit.mkdir(parents=True, exist_ok=True)
             self.audit_trail = self.generate_audit_trail()
 
+    def get_run_info(self):
+        self.date_and_time=datetime.now().strftime('%d-%m-%Y %H:%M:%S')
+        self.hostname=str(subprocess.check_output(['hostname']).strip())
 
     def get_git_audit(self, git_file):
         """Function to get URL and commit from pipeline repo 
