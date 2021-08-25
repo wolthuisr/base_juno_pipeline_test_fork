@@ -1,0 +1,24 @@
+SAMPLES = ['a', 'b', 'c']
+
+rule all:
+    input:
+        "fake_output_dir/fake_result.txt",
+        expand("fake_output_dir/fake_file_{sample}.txt", sample=SAMPLES)
+
+rule first_rule:
+    output:
+        "fake_output_dir/fake_file_{sample}.txt"
+    threads: 1
+    resources: mem_gb=4
+    shell:
+        "touch {output}"
+
+rule second_rule:
+    input:
+        expand("fake_output_dir/fake_file_{sample}.txt", sample=SAMPLES)
+    output:
+        "fake_output_dir/fake_result.txt"
+    threads: 1
+    resources: mem_gb=4
+    shell:
+        "touch {output}"

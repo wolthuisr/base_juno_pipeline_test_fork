@@ -252,13 +252,21 @@ class TestRunSnakemake(unittest.TestCase):
     properly (not testing the run itself)"""
 
     def setUpClass():
-        open('sample_sheet.yaml', 'a').close()
-        open('user_parameters.yaml', 'a').close()
-        open('fixed_parameters.yaml', 'a').close()
+        with open('user_parameters.yaml', 'a') as file_:
+            file_.write('fake_parameter: null') 
+        with open('fixed_parameters.yaml', 'a') as file_:
+            file_.write('fake_parameter: null') 
+        with open('sample_sheet.yaml', 'a') as file_:
+            file_.write('fake_sample: null')
+        os.mkdir('fake_input')
+        pathlib.Path('fake_input/sample_a.fasta').touch()
+        pathlib.Path('fake_input/sample_b.fasta').touch()
+        pathlib.Path('fake_input/sample_c.fasta').touch()
 
     def tearDownClass():
         os.system('rm sample_sheet.yaml user_parameters.yaml fixed_parameters.yaml')
         os.system('rm -rf fake_output_dir')
+        os.system('rm -rf fake_input')
 
     def test_fake_dryrun_setup(self):       
         fake_run = base_juno_pipeline.RunSnakemake(pipeline_name='fake_pipeline',
@@ -323,6 +331,24 @@ class TestRunSnakemake(unittest.TestCase):
                         repo_url_in_audit_trail = True
             self.assertTrue(repo_url_in_audit_trail)
 
+    def test_pipeline(self):     
+        fake_run = base_juno_pipeline.RunSnakemake(pipeline_name='fake_pipeline',
+                                                    pipeline_version='0.1',
+                                                    output_dir='fake_output_dir',
+                                                    workdir=main_script_path,
+                                                    sample_sheet='sample_sheet.yaml',
+                                                    user_parameters='user_parameters.yaml',
+                                                    fixed_parameters='fixed_parameters.yaml',
+                                                    snakefile='tests/Snakefile',
+                                                    name_snakemake_report='fake_snakemake_report.html',
+                                                    local=True)
+        audit_trail_path = pathlib.Path('fake_output_dir', 'audit_trail')
+        successful_run = fake_run.run_snakemake()
+        successful_report = fake_run.make_snakemake_report()
+        self.assertTrue(successful_run)
+        self.assertTrue(pathlib.Path('fake_output_dir/fake_result.txt').exists())
+        self.assertTrue(successful_report)
+        self.assertTrue(audit_trail_path.joinpath('fake_snakemake_report.html').exists())
         
         
 

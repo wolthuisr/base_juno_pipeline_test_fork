@@ -180,10 +180,14 @@ class RunSnakemake(helper_functions.JunoHelpers):
                 dryrun=False,
                 useconda=True,
                 conda_frontend='mamba',
+                conda_prefix=None,
                 usesingularity=True,
                 singularityargs='',
+                singularity_prefix=None,
                 restarttimes=0,
-                latency_wait=60):
+                latency_wait=60,
+                name_snakemake_report='snakemake_report.html',
+                **kwargs):
         self.pipeline_name=pipeline_name
         self.pipeline_version=pipeline_version
         self.date_and_time=datetime.now().strftime('%d-%m-%Y %H:%M:%S')
@@ -195,6 +199,7 @@ class RunSnakemake(helper_functions.JunoHelpers):
         self.fixed_parameters=fixed_parameters
         self.snakefile=snakefile
         self.path_to_audit=self.output_dir.joinpath('audit_trail')
+        self.snakemake_report = str(self.path_to_audit.joinpath(name_snakemake_report))
         self.cores=cores
         self.local=local
         self.queue=queue
@@ -203,10 +208,13 @@ class RunSnakemake(helper_functions.JunoHelpers):
         self.rerunincomplete=rerunincomplete
         self.useconda=useconda
         self.conda_frontend='mamba'
+        self.conda_prefix=conda_prefix
         self.usesingularity=usesingularity
         self.singularityargs=singularityargs
+        self.singularity_prefix=singularity_prefix
         self.restarttimes=restarttimes
         self.latency=latency_wait
+        self.kwargs = kwargs
         # Generate pipeline audit trail
         if not self.dryrun or self.unlock:
             self.path_to_audit.mkdir(parents=True, exist_ok=True)
@@ -288,17 +296,40 @@ class RunSnakemake(helper_functions.JunoHelpers):
                                     jobname=self.pipeline_name + "_{name}.jobid{jobid}",
                                     use_conda=self.useconda,
                                     conda_frontend=self.conda_frontend,
+                                    conda_prefix=self.conda_prefix,
                                     use_singularity=self.usesingularity,
                                     singularity_args=self.singularityargs,
+                                    singularity_prefix=self.singularity_prefix,
                                     keepgoing=True,
                                     printshellcmds=True,
                                     force_incomplete=self.rerunincomplete,
                                     restart_times=self.restarttimes, 
                                     latency_wait=self.latency,
                                     unlock=self.unlock,
-                                    dryrun=self.dryrun)
+                                    dryrun=self.dryrun,
+                                    **self.kwargs)
         assert pipeline_run_successful, self.error_formatter(f"An error occured while running the {self.pipeline_name} pipeline.")
         print(self.message_formatter(f"Finished running {self.pipeline_name} pipeline!"))
         return pipeline_run_successful
+
+    def make_snakemake_report(self):
+    
+        print(self.message_formatter(f"Generating snakemake report for audit trail..."))
+
+        snakemake_report_successful = snakemake(self.snakefile,
+                                    workdir=self.workdir,
+                                    configfiles=[self.user_parameters, self.fixed_parameters],
+                                    config={"sample_sheet": str(self.sample_sheet)},
+                                    cores=1,
+                                    nodes=1,
+                                    use_conda=self.useconda,
+                                    conda_frontend=self.conda_frontend,
+                                    conda_prefix=self.conda_prefix,
+                                    use_singularity=self.usesingularity,
+                                    singularity_args=self.singularityargs,
+                                    singularity_prefix=self.singularity_prefix,
+                                    report=self.snakemake_report,
+                                    **self.kwargs)
+        return snakemake_report_successful
 
         
