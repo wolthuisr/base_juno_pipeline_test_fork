@@ -23,11 +23,11 @@ class PipelineStartup(helper_functions.JunoHelpers):
     def __init__(self,
                 input_dir, 
                 input_type='fastq',
-                min_file_size=0):
+                min_num_lines=0):
 
         self.input_dir = pathlib.Path(input_dir)
         self.input_type = input_type
-        self.min_file_size = int(min_file_size)
+        self.min_num_lines = int(min_num_lines)
         self.start_juno_pipeline()
 
     def start_juno_pipeline(self):
@@ -36,6 +36,8 @@ class PipelineStartup(helper_functions.JunoHelpers):
         assert self.input_type in ['fastq', 'fasta', 'both'], \
             "input_type to be checked can only be 'fastq', 'fasta' or 'both'"
         self.unique_id = uuid4()
+        self.supported_extensions = {'fastq': ('.fastq', '.fastq.gz', '.fq', '.fq.gz'),
+                                    'fasta': ('.fasta')}
         self.__subdirs_ = self.__define_input_subdirs()
         self.__validate_input_dir()
         print("Making a list of samples to be processed in this pipeline run...")
@@ -70,8 +72,8 @@ class PipelineStartup(helper_functions.JunoHelpers):
                     'fasta': self.input_dir}
 
     def __validate_input_subdir(self, 
-                                input_subdir, 
-                                extension=('.fastq', '.fastq.gz', '.fq', '.fq.gz', '.fasta')):
+                                input_subdir,
+                                extension=('fasta')):
         """Function to validate whether the subdirectories (if applicable)
         or the input directory have files that end with the expected extension"""
         for item in input_subdir.iterdir():
@@ -88,18 +90,15 @@ class PipelineStartup(helper_functions.JunoHelpers):
         directory that contains files with the expected extension (fastq
         or fasta)"""
     
-        if self.input_type == 'fastq':
-            return self.__validate_input_subdir(self.__subdirs_['fastq'], 
-                                                ('.fastq', '.fastq.gz', '.fq', '.fq.gz'))
-        elif self.input_type == 'fasta':
-            return self.__validate_input_subdir(self.__subdirs_['fasta'], 
-                                                ('.fasta'))
-        else:
+        if self.input_type == 'both':
             fastq_subdir_validated = self.__validate_input_subdir(self.__subdirs_['fastq'], 
-                                                                ('.fastq', '.fastq.gz', '.fq', '.fq.gz'))
+                                                                self.supported_extensions['fastq'])
             fasta_subdir_validated = self.__validate_input_subdir(self.__subdirs_['fasta'], 
-                                                                ('.fasta'))
+                                                                self.supported_extensions['fasta'])
             return (fastq_subdir_validated and fasta_subdir_validated)
+        else:
+            return self.__validate_input_subdir(self.__subdirs_[self.input_type], 
+                                                self.supported_extensions[self.input_type])
 
     def __enlist_fastq_samples(self):
         """Function to enlist the fastq files found in the input 
@@ -108,7 +107,7 @@ class PipelineStartup(helper_functions.JunoHelpers):
         pattern = re.compile("(.*?)(?:_S\d+_|_S\d+.|_|\.)(?:p)?R?(1|2)(?:_.*\.|\..*\.|\.)f(ast)?q(\.gz)?")
         samples = {}
         for file_ in self.__subdirs_['fastq'].iterdir():
-            if self.validate_is_nonempty_file(file_, self.min_file_size):
+            if self.validate_file_has_min_lines(file_, self.min_num_lines):
                 match = pattern.fullmatch(file_.name)
                 if match:
                     sample = samples.setdefault(match.group(1), {})
@@ -122,7 +121,7 @@ class PipelineStartup(helper_functions.JunoHelpers):
         pattern = re.compile("(.*?).fasta")
         samples = {}
         for file_ in self.__subdirs_['fasta'].iterdir():
-            if self.validate_is_nonempty_file(file_, self.min_file_size):
+            if self.validate_file_has_min_lines(file_, self.min_num_lines):
                 match = pattern.fullmatch(file_.name)
                 if match:
                     sample = samples.setdefault(match.group(1), {})

@@ -22,7 +22,7 @@ class TextHelpers:
 class FileHelpers:
     """Class with helper functions for file/dir validation and manipulation"""
 
-    def validate_is_nonempty_file(self, file_path, min_file_size = 0):
+    def validate_is_nonempty_file(self, file_path, min_file_size=0):
         file_path = pathlib.Path(file_path)
         nonempty_file = (file_path.is_file() 
                             and file_path.stat().st_size >= min_file_size)
@@ -30,6 +30,27 @@ class FileHelpers:
             return True
         else:
             return False
+    
+    def is_gz_file(self, filepath):
+        with open(filepath, 'rb') as file_:
+            return file_.read(2) == b'\x1f\x8b'
+        
+    def validate_file_has_min_lines(self, file_path, min_num_lines=-1):
+        """Test if gzip file contains more than the desired number of lines. 
+        Returns True/False
+        """
+        if not self.validate_is_nonempty_file(file_path, min_file_size=1):
+            return False
+        else:
+            with open(file_path, 'rb') as f:
+                line=0
+                file_right_num_lines = False
+                for lines in f:
+                    line=line+1
+                    if line >= min_num_lines:
+                        file_right_num_lines = True
+                        break
+            return file_right_num_lines
 
 
 class GitHelpers:

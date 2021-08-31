@@ -9,6 +9,9 @@ path.insert(0, main_script_path)
 from base_juno_pipeline import base_juno_pipeline
 from base_juno_pipeline import helper_functions
 
+def make_non_empty_file(file_path, content='this\nfile\nhas\ncontents'):
+    with open(file_path, 'w') as file_:
+        file_.write(content)
 
 class TestTextJunoHelpers(unittest.TestCase):
     """Testing Text Helper Functions"""
@@ -29,26 +32,44 @@ class TestTextJunoHelpers(unittest.TestCase):
 class TestFileJunoHelpers(unittest.TestCase):
     """Testing File Helper Functions"""
 
-    def test_validate_is_nonempty_file(self):
+    def test_validate_file_has_min_lines(self):
         """Testing that the function to check whether a file is empty works.
         It should return True if nonempty file"""
         JunoHelpers = helper_functions.JunoHelpers()
         nonempty_file = 'nonempty.txt'
-        with open(nonempty_file, 'w'):
-            print('x')
-        self.assertTrue(JunoHelpers.validate_is_nonempty_file(nonempty_file))
-        os.system(f'rm {nonempty_file}')
+        make_non_empty_file(nonempty_file)
+        self.assertTrue(JunoHelpers.validate_file_has_min_lines(nonempty_file))
+        os.system(f'rm -f {nonempty_file}')
     
-    def test_validate_is_nonempty_file(self):
+    def test_validate_file_has_min_lines(self):
         """Testing that the function to check whether a file is empty works.
-        It should return True if file is empty but no min_file_size is given
-        and False if empty file and a min_file_size of at least 1"""
+        It should return True if file is empty but no min_num_lines is given
+        and False if empty file and a min_num_lines of at least 1"""
         JunoHelpers = helper_functions.JunoHelpers()
         empty_file = 'empty.txt'
         open(empty_file, 'a').close()
-        self.assertTrue(JunoHelpers.validate_is_nonempty_file(empty_file))
-        self.assertFalse(JunoHelpers.validate_is_nonempty_file(empty_file, min_file_size = 1))
-        os.system(f'rm {empty_file}')
+        self.assertFalse(
+            JunoHelpers.validate_file_has_min_lines(empty_file, min_num_lines = 1)
+            )
+        os.system(f'rm -f {empty_file}')
+
+
+    def test_validate_is_nonempty_when_gzipped(self):
+        """Testing that the function to check whether a gzipped file is empty 
+        works. It should return True if file is empty but no min_num_lines is 
+        given and False if empty file and a min_num_lines of at least 1"""
+        JunoHelpers = helper_functions.JunoHelpers()
+        empty_file = 'empty.txt'
+        open(empty_file, 'a').close()
+        os.system(f'gzip -f {empty_file}')
+        self.assertTrue(
+            JunoHelpers.validate_file_has_min_lines(f'{empty_file}.gz')
+            )
+        self.assertFalse(
+            JunoHelpers.validate_file_has_min_lines(f'{empty_file}.gz', min_num_lines = 3)
+            )
+        os.system(f'rm -f {empty_file}')
+        os.system(f'rm -f {empty_file}.gz')
 
 
 class TestTextJunoHelpers(unittest.TestCase):
@@ -137,7 +158,7 @@ class TestPipelineStartup(unittest.TestCase):
         for folder in fake_dirs:
             pathlib.Path(folder).mkdir(exist_ok = True)
         for file_ in fake_files:
-            pathlib.Path(file_).touch(exist_ok = True)
+            make_non_empty_file(file_)
 
     def tearDownClass():
         """Removing fake directories/files"""
@@ -207,14 +228,14 @@ class TestPipelineStartup(unittest.TestCase):
         self.assertDictEqual(pipeline.sample_dict, expected_output)
 
     def test_files_smaller_than_minlen(self):
-        """Testing the pipeline startup fails if you set a min_file_size 
+        """Testing the pipeline startup fails if you set a min_num_lines 
         different than 0"""
 
         self.assertRaises(ValueError, 
                             base_juno_pipeline.PipelineStartup, 
                             pathlib.Path('fake_dir_incomplete'), 
                             'both',
-                            min_file_size = 1000)
+                            min_num_lines = 1000)
 
     def test_junodir_wnumericsamplenames(self):
         """Testing the pipeline startup converts numeric file names to 
