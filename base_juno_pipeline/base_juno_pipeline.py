@@ -145,13 +145,13 @@ class PipelineStartup(helper_functions.JunoHelpers):
     def validate_sample_dict(self):
         if not self.sample_dict:
             raise ValueError(
-                    self.error_formatter(f'The input directory ({self.input_dir}) does not contain any files with the expected format/naming.'))
+                    self.error_formatter(f'The input directory ({self.input_dir}) does not contain any files with the expected format/naming. Also check that your files have an expected size (min. number of lines expected: {self.min_num_lines}'))
         if self.input_type == 'fastq' or self.input_type == 'both':
             for sample in self.sample_dict:
                 R1_present = 'R1' in self.sample_dict[sample].keys()
                 R2_present = 'R2' in self.sample_dict[sample].keys()
                 if (not R1_present or not R2_present):
-                    raise KeyError(self.error_formatter(f'Either the R1 or R2 files are missing for sample {sample}. Paired-end reads are expected by the Juno pipelines. If you are sure you have paired-end reads, it might be that the names of some of your files are not being properly recognized'))
+                    raise KeyError(self.error_formatter(f'One of the paired fastq files (R1 or R2) are missing for sample {sample}. This pipeline ONLY ACCEPTS PAIRED READS. If you are sure you have complete paired-end reads, make sure to NOT USE _1 and _2 within your file names unless it is to differentiate paired fastq files or any unsupported character (Supported: letters, numbers, underscores).'))
         if self.input_type == 'fasta' or self.input_type == 'both':
             for sample in self.sample_dict:
                 assembly_present = self.sample_dict[sample].keys()

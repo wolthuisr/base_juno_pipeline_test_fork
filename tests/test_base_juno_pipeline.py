@@ -1,3 +1,4 @@
+import argparse
 import os
 import pathlib
 from sys import path
@@ -49,7 +50,7 @@ class TestFileJunoHelpers(unittest.TestCase):
         empty_file = 'empty.txt'
         open(empty_file, 'a').close()
         self.assertFalse(
-            JunoHelpers.validate_file_has_min_lines(empty_file, min_num_lines = 1)
+            JunoHelpers.validate_file_has_min_lines(empty_file, min_num_lines=1)
             )
         os.system(f'rm -f {empty_file}')
 
@@ -371,7 +372,24 @@ class TestRunSnakemake(unittest.TestCase):
         self.assertTrue(successful_report)
         self.assertTrue(audit_trail_path.joinpath('fake_snakemake_report.html').exists())
         
-        
+
+class TestKwargsClass(unittest.TestCase):
+    """Testing Argparse action to store kwargs (to be passed to Snakemake)"""
+
+    def test_kwargs_are_parsed(self):
+        parser = argparse.ArgumentParser(
+            description = "Testing parser"
+        )
+        parser.add_argument(
+            "--snakemake-args",
+            nargs='*',
+            default={},
+            action=helper_functions.SnakemakeKwargsAction,
+            help="Extra arguments to be passed to snakemake API (https://snakemake.readthedocs.io/en/stable/api_reference/snakemake.html)."
+        )
+        args = parser.parse_args(['--snakemake-args', 'key1=value1', 'key2=value2'])
+        expected_output = {"key1": "value1", "key2": "value2"}
+        self.assertEqual(args.snakemake_args, expected_output, args.snakemake_args)
 
 
 if __name__ == '__main__':

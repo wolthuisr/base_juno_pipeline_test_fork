@@ -1,5 +1,7 @@
+import argparse
 import subprocess
 import pathlib
+
 
 class TextHelpers:
     """Class with helper functions for text manipulation"""
@@ -110,3 +112,19 @@ class GitHelpers:
 
 class JunoHelpers(TextHelpers, FileHelpers, GitHelpers):
     pass
+
+
+class SnakemakeKwargsAction(argparse.Action,
+                                JunoHelpers):
+    def __call__(self, parser, namespace, values, option_string=None):
+        keyword_dict = {}
+        for arg in values: 
+            pieces = arg.split('=')
+            if len(pieces) == 2:
+                if pieces[1].startswith('['):
+                    pieces[1] = pieces[1].replace('[', '').replace(']', '').split(',')
+                keyword_dict[pieces[0]] = pieces[1]
+            else: 
+                msg = f'The argument {arg} is not valid. Did you try to pass an extra argument to Snakemkake? Make sure that you used the API format and that you use the argument int he form: arg=value.'
+                raise argparse.ArgumentTypeError(self.error_formatter(msg))
+        setattr(namespace, self.dest, keyword_dict)
