@@ -8,10 +8,12 @@ dependencies:
   - drmaa==0.7.9
   - git
   - mamba
+  - pandas==1.3.2
   - pip==19.2.3
   - snakemake==6.2.1
   - xlrd==1.2.0
   - unittest2
   - pip:
+    - numpy
     - PyYAML
 

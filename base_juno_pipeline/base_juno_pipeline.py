@@ -5,6 +5,7 @@ bioinformatics group at the RIVM. All our pipelines use Snakemake.
 """
 
 from datetime import datetime
+from pandas import read_csv
 import pathlib
 import re
 from snakemake import snakemake
@@ -157,6 +158,23 @@ class PipelineStartup(helper_functions.JunoHelpers):
                 assembly_present = self.sample_dict[sample].keys()
                 if 'assembly' not in assembly_present:
                     raise KeyError(self.error_formatter(f'The assembly is mising for sample {sample}. This pipeline expects an assembly per sample.'))
+
+    def get_metadata_from_juno_assembly(self):
+        """
+        Function to get a dictionary with the sample, genus and species per 
+        sample
+        """
+        # Only when the input_dir comes from the Juno-assembly pipeline 
+        # the input directory will have a sub-directory called identify_species
+        # containing a top1_species_multireport.csv file that can be used as the
+        # metadata for other downstream pipelines 
+        juno_species_file = self.input_dir.joinpath('identify_species', 'top1_species_multireport.csv')
+        if juno_species_file.exists():
+            juno_metadata = read_csv(juno_species_file, dtype={'sample': str, 'genus': str, 'species': str})
+            juno_metadata.set_index('sample', inplace=True)
+            self.juno_metadata = juno_metadata.to_dict(orient='index')
+        else:
+            self.juno_metadata = None
 
 
 
