@@ -159,7 +159,7 @@ class PipelineStartup(helper_functions.JunoHelpers):
                 if 'assembly' not in assembly_present:
                     raise KeyError(self.error_formatter(f'The assembly is mising for sample {sample}. This pipeline expects an assembly per sample.'))
 
-    def get_metadata_from_juno_assembly(self):
+    def get_metadata_from_juno_assembly(self, filepath=None):
         """
         Function to get a dictionary with the sample, genus and species per 
         sample
@@ -168,7 +168,10 @@ class PipelineStartup(helper_functions.JunoHelpers):
         # the input directory will have a sub-directory called identify_species
         # containing a top1_species_multireport.csv file that can be used as the
         # metadata for other downstream pipelines 
-        juno_species_file = self.input_dir.joinpath('identify_species', 'top1_species_multireport.csv')
+        if filepath is None:
+            juno_species_file = self.input_dir.joinpath('identify_species', 'top1_species_multireport.csv')
+        else:
+            juno_species_file = pathlib.Path(filepath)
         if juno_species_file.exists():
             juno_metadata = read_csv(juno_species_file, dtype={'sample': str, 'genus': str, 'species': str})
             juno_metadata.set_index('sample', inplace=True)

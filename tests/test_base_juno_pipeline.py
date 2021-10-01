@@ -137,6 +137,7 @@ class TestPipelineStartup(unittest.TestCase):
                     'fake_dir_juno', 
                     'fake_dir_juno/clean_fastq', 
                     'fake_dir_juno/de_novo_assembly_filtered',
+                    'fake_dir_juno/identify_species',
                     'fake_wrong_fastq_names']
 
         fake_files = ['fake_dir_wsamples/sample1_R1.fastq',
@@ -160,6 +161,11 @@ class TestPipelineStartup(unittest.TestCase):
             pathlib.Path(folder).mkdir(exist_ok = True)
         for file_ in fake_files:
             make_non_empty_file(file_)
+        bracken_dir = pathlib.Path('fake_dir_juno').joinpath('identify_species')
+        bracken_dir.mkdir(parents=True, exist_ok=True)
+        bracken_multireport_path = bracken_dir.joinpath('top1_species_multireport.csv')
+        bracken_multireport_content = "sample,genus,species\n1234,Salmonella,enterica\n"
+        make_non_empty_file(bracken_multireport_path, content=bracken_multireport_content)
 
     def tearDownClass():
         """Removing fake directories/files"""
@@ -170,6 +176,7 @@ class TestPipelineStartup(unittest.TestCase):
                     'fake_dir_juno', 
                     'fake_dir_juno/clean_fastq', 
                     'fake_dir_juno/de_novo_assembly_filtered',
+                    'fake_dir_juno/identify_species',
                     'fake_wrong_fastq_names']
 
         for folder in fake_dirs:
@@ -243,12 +250,7 @@ class TestPipelineStartup(unittest.TestCase):
     def test_junodir_wnumericsamplenames(self):
         """Testing the pipeline startup converts numeric file names to 
         string"""
-        bracken_dir = pathlib.Path('fake_dir_juno').joinpath('identify_species')
-        bracken_dir.mkdir(parents=True, exist_ok=True)
-        bracken_multireport_path = bracken_dir.joinpath('top1_species_multireport.csv')
-        bracken_multireport_content = "sample,genus,species\n1234,Salmonella,enterica\n"
-        make_non_empty_file(bracken_multireport_path, content=bracken_multireport_content)
-
+        
         expected_output = {'1234': {'R1': str(pathlib.Path('fake_dir_juno').joinpath('clean_fastq', '1234_R1.fastq.gz')), 
                                         'R2': str(pathlib.Path('fake_dir_juno').joinpath('clean_fastq', '1234_R2.fastq.gz')), 
                                         'assembly': str(pathlib.Path('fake_dir_juno').joinpath('de_novo_assembly_filtered', '1234.fasta'))}}
@@ -262,13 +264,16 @@ class TestPipelineStartup(unittest.TestCase):
     def test_string_accepted_as_inputdir(self):
         """Testing the pipeline startup accepts string (not only pathlib.Path)
         as input"""
-
+        
         expected_output = {'1234': {'R1': str(pathlib.Path('fake_dir_juno').joinpath('clean_fastq', '1234_R1.fastq.gz')), 
                                         'R2': str(pathlib.Path('fake_dir_juno').joinpath('clean_fastq/1234_R2.fastq.gz')), 
-                                        'assembly': str(pathlib.Path('fake_dir_juno').joinpath('de_novo_assembly_filtered','1234.fasta'))}}
-                
+                                        'assembly': str(pathlib.Path('fake_dir_juno').joinpath('de_novo_assembly_filtered','1234.fasta'))}}      
+        expected_metadata = {'1234': {'genus': 'Salmonella',
+                                    'species': 'enterica'}}
         pipeline = base_juno_pipeline.PipelineStartup('fake_dir_juno', 'both')
         self.assertDictEqual(pipeline.sample_dict, expected_output)
+        pipeline.get_metadata_from_juno_assembly(filepath='fake_dir_juno/identify_species/top1_species_multireport.csv')
+        self.assertDictEqual(pipeline.juno_metadata, expected_metadata, pipeline.juno_metadata)
 
     def test_fail_with_wrong_fastq_naming(self):
         """Testing the pipeline startup fails with wrong fastq naming (name 
