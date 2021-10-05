@@ -159,7 +159,7 @@ class PipelineStartup(helper_functions.JunoHelpers):
                 if 'assembly' not in assembly_present:
                     raise KeyError(self.error_formatter(f'The assembly is mising for sample {sample}. This pipeline expects an assembly per sample.'))
 
-    def get_metadata_from_juno_assembly(self, filepath=None):
+    def get_metadata_from_csv_file(self, filepath=None, expected_colnames=['sample', 'genus']):
         """
         Function to get a dictionary with the sample, genus and species per 
         sample
@@ -173,7 +173,11 @@ class PipelineStartup(helper_functions.JunoHelpers):
         else:
             juno_species_file = pathlib.Path(filepath)
         if juno_species_file.exists():
-            juno_metadata = read_csv(juno_species_file, dtype={'sample': str, 'genus': str, 'species': str})
+            juno_metadata = read_csv(juno_species_file, dtype={'sample': str})
+            assert all([col in juno_metadata.columns for col in expected_colnames]), \
+                self.error_formatter(
+                    f'The provided metadata file ({filepath}) does not contain one or more of the expected column names ({",".join(expected_colnames)}). Are you using the right capitalization for the column names?'
+                )
             juno_metadata.set_index('sample', inplace=True)
             self.juno_metadata = juno_metadata.to_dict(orient='index')
         else:

@@ -164,7 +164,7 @@ class TestPipelineStartup(unittest.TestCase):
         bracken_dir = pathlib.Path('fake_dir_juno').joinpath('identify_species')
         bracken_dir.mkdir(parents=True, exist_ok=True)
         bracken_multireport_path = bracken_dir.joinpath('top1_species_multireport.csv')
-        bracken_multireport_content = "sample,genus,species\n1234,Salmonella,enterica\n"
+        bracken_multireport_content = "sample,genus,species\n1234,salmonella,enterica\n"
         make_non_empty_file(bracken_multireport_path, content=bracken_multireport_content)
 
     def tearDownClass():
@@ -233,7 +233,7 @@ class TestPipelineStartup(unittest.TestCase):
                                         'R2': str(pathlib.Path('fake_dir_wsamples').joinpath('sample2_R2_filt.fq.gz')), 
                                         'assembly': str(pathlib.Path('fake_dir_wsamples').joinpath('sample2.fasta'))}}
         pipeline = base_juno_pipeline.PipelineStartup(pathlib.Path('fake_dir_wsamples'), 'both')
-        pipeline.get_metadata_from_juno_assembly()
+        pipeline.get_metadata_from_csv_file()
         self.assertDictEqual(pipeline.sample_dict, expected_output)
         self.assertEqual(pipeline.juno_metadata, None)
 
@@ -254,10 +254,10 @@ class TestPipelineStartup(unittest.TestCase):
         expected_output = {'1234': {'R1': str(pathlib.Path('fake_dir_juno').joinpath('clean_fastq', '1234_R1.fastq.gz')), 
                                         'R2': str(pathlib.Path('fake_dir_juno').joinpath('clean_fastq', '1234_R2.fastq.gz')), 
                                         'assembly': str(pathlib.Path('fake_dir_juno').joinpath('de_novo_assembly_filtered', '1234.fasta'))}}
-        expected_metadata = {'1234': {'genus': 'Salmonella',
+        expected_metadata = {'1234': {'genus': 'salmonella',
                                     'species': 'enterica'}}
         pipeline = base_juno_pipeline.PipelineStartup(pathlib.Path('fake_dir_juno'), 'both')
-        pipeline.get_metadata_from_juno_assembly()
+        pipeline.get_metadata_from_csv_file()
         self.assertDictEqual(pipeline.sample_dict, expected_output)
         self.assertDictEqual(pipeline.juno_metadata, expected_metadata, pipeline.juno_metadata)
 
@@ -268,11 +268,11 @@ class TestPipelineStartup(unittest.TestCase):
         expected_output = {'1234': {'R1': str(pathlib.Path('fake_dir_juno').joinpath('clean_fastq', '1234_R1.fastq.gz')), 
                                         'R2': str(pathlib.Path('fake_dir_juno').joinpath('clean_fastq/1234_R2.fastq.gz')), 
                                         'assembly': str(pathlib.Path('fake_dir_juno').joinpath('de_novo_assembly_filtered','1234.fasta'))}}      
-        expected_metadata = {'1234': {'genus': 'Salmonella',
+        expected_metadata = {'1234': {'genus': 'salmonella',
                                     'species': 'enterica'}}
         pipeline = base_juno_pipeline.PipelineStartup('fake_dir_juno', 'both')
         self.assertDictEqual(pipeline.sample_dict, expected_output)
-        pipeline.get_metadata_from_juno_assembly(filepath='fake_dir_juno/identify_species/top1_species_multireport.csv')
+        pipeline.get_metadata_from_csv_file(filepath='fake_dir_juno/identify_species/top1_species_multireport.csv')
         self.assertDictEqual(pipeline.juno_metadata, expected_metadata, pipeline.juno_metadata)
 
     def test_fail_with_wrong_fastq_naming(self):
@@ -282,6 +282,14 @@ class TestPipelineStartup(unittest.TestCase):
                             base_juno_pipeline.PipelineStartup, 
                             pathlib.Path('fake_wrong_fastq_names'), 
                             'fastq')
+
+    def test_fails_if_metadata_has_wrong_colnames(self):
+        """
+        Testing the pipeline startup fails with wrong column names in metadata
+        """
+        test = base_juno_pipeline.PipelineStartup('fake_dir_juno', 'both')
+        with self.assertRaisesRegex(AssertionError, 'does not contain one or more of the expected column names'):
+            test.get_metadata_from_csv_file(expected_colnames=['Sample', 'Genus'])
 
 
 class TestRunSnakemake(unittest.TestCase):
