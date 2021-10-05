@@ -1,9 +1,10 @@
-"""
+'''
 The Juno pipeline library contains the basic classes to build a 
 bacteriology genomics pipeline with the format used in the IDS-
 bioinformatics group at the RIVM. All our pipelines use Snakemake.
-"""
+'''
 
+from base_juno_pipeline import helper_functions
 from datetime import datetime
 from pandas import read_csv
 import pathlib
@@ -13,30 +14,42 @@ import subprocess
 from uuid import uuid4
 import yaml
 
-from base_juno_pipeline import helper_functions
 
 class PipelineStartup(helper_functions.JunoHelpers):
-    """Class with checkings for the input directory and to generate a 
-    dictionary  with sample names and their corresponding input files 
-    (sample_dict). Works for pipelines accepting fastq or fasta files 
-    as input"""
+    '''
+    Class to perform actions that need to be done before running a pipeline.
+    For instance: check that input directory exists and has the expected input
+    files, generate a dictionary (sample_dict) with sample names and their 
+    corresponding files, make a dictionary with metadata if necessary. 
+    It has been written to be adapted to different pipelines accepting fastq and/or fasta files 
+    as input
+    '''
     
     def __init__(self,
                 input_dir, 
                 input_type='fastq',
                 min_num_lines=0):
-
+        '''Constructor'''
         self.input_dir = pathlib.Path(input_dir)
         self.input_type = input_type
         self.min_num_lines = int(min_num_lines)
+        self.__validate_arguments()
         self.start_juno_pipeline()
 
-    def start_juno_pipeline(self):
+    def __validate_arguments(self):
         assert self.input_dir.is_dir(), \
             f"The provided input directory ({str(self.input_dir)}) does not exist. Please provide an existing directory"
         assert self.input_type in ['fastq', 'fasta', 'both'], \
             "input_type to be checked can only be 'fastq', 'fasta' or 'both'"
-        self.unique_id = uuid4()
+        
+    def start_juno_pipeline(self):
+        '''
+        This function performs calls other functions in the class to complete 
+        all the necessary steps needed for a robust and well documented Juno
+        pipeline. For instance, validating directories, making sample_dict 
+        (from which a sample_sheet can be made), etc. This is the main (and 
+        often only) function that is usually needed to run a Juno pipeline
+        '''
         self.supported_extensions = {'fastq': ('.fastq', '.fastq.gz', '.fq', '.fq.gz'),
                                     'fasta': ('.fasta')}
         self.__subdirs_ = self.__define_input_subdirs()
@@ -47,9 +60,12 @@ class PipelineStartup(helper_functions.JunoHelpers):
         self.validate_sample_dict()
 
     def __input_dir_is_juno_assembly_output(self):
-        """Function to check whether the input directory is actually
-        the output of the Juno_assembly pipeline. The Juno_assembly 
-        pipeline is often the first step for downstream analyses."""
+        '''
+        Function to check whether the input directory is actually the output 
+        of the Juno_assembly pipeline. The Juno_assembly pipeline is often the 
+        first step for downstream analyses, so its output becomes the input 
+        directory of other pipelines
+        '''
         is_juno_assembly_output = (self.input_dir.joinpath('clean_fastq').exists() 
                                         and self.input_dir.joinpath('de_novo_assembly_filtered').exists())
         if is_juno_assembly_output:
@@ -58,8 +74,10 @@ class PipelineStartup(helper_functions.JunoHelpers):
             return False
 
     def __define_input_subdirs(self):
-        """Function to check whether the input is from the Juno assembly 
-        pipeline or just a simple input directory"""
+        '''
+        Function to check whether the input is from the Juno assembly 
+        pipeline or just a simple input directory
+        '''
         # Only when the input_dir comes from the Juno-assembly pipeline 
         # the fastq and fasta files do not need to be in the same 
         # folder (fastq are then expected in a subfolder called 
@@ -75,8 +93,8 @@ class PipelineStartup(helper_functions.JunoHelpers):
     def __validate_input_subdir(self, 
                                 input_subdir,
                                 extension=('fasta')):
-        """Function to validate whether the subdirectories (if applicable)
-        or the input directory have files that end with the expected extension"""
+        '''Function to validate whether the subdirectories (if applicable)
+        or the input directory have files that end with the expected extension'''
         for item in input_subdir.iterdir():
             if item.is_file():
                 if str(item).endswith(extension):
@@ -87,10 +105,10 @@ class PipelineStartup(helper_functions.JunoHelpers):
                                             ))
 
     def __validate_input_dir(self):
-        """Function to check that input directory is indeed an existing 
-        directory that contains files with the expected extension (fastq
-        or fasta)"""
-    
+        '''
+        Function to check that input directory is indeed an existing directory 
+        that contains files with the expected extension (fastq or fasta)
+        '''
         if self.input_type == 'both':
             fastq_subdir_validated = self.__validate_input_subdir(self.__subdirs_['fastq'], 
                                                                 self.supported_extensions['fastq'])
@@ -102,9 +120,15 @@ class PipelineStartup(helper_functions.JunoHelpers):
                                                 self.supported_extensions[self.input_type])
 
     def __enlist_fastq_samples(self):
-        """Function to enlist the fastq files found in the input 
-        directory. Returns a dictionary with the form 
-        {sample: {R1: fastq_file1, R2: fastq_file2}}"""
+        '''
+        Function to enlist the fastq files found in the input directory. 
+        Returns a dictionary with the form:
+        {sample: {R1: fastq_file1, R2: fastq_file2}}
+        '''
+        # Regex to detect different sample names in de fastq file names
+        # It does NOT accept sample names that contain _1 or _2 in the name
+        # because they get confused with the identifiers of forward and reverse
+        # reads.
         pattern = re.compile("(.*?)(?:_S\d+_|_S\d+.|_|\.)(?:p)?R?(1|2)(?:_.*\.|\..*\.|\.)f(ast)?q(\.gz)?")
         samples = {}
         for file_ in self.__subdirs_['fastq'].iterdir():
@@ -116,9 +140,11 @@ class PipelineStartup(helper_functions.JunoHelpers):
         return samples
 
     def __enlist_fasta_samples(self):
-        """Function to enlist the fasta files found in the input 
+        '''
+        Function to enlist the fasta files found in the input 
         directory. Returns a dictionary with the form 
-        {sample: {assembly: fasta_file}}"""
+        {sample: {assembly: fasta_file}}
+        '''
         pattern = re.compile("(.*?).fasta")
         samples = {}
         for file_ in self.__subdirs_['fasta'].iterdir():
@@ -130,8 +156,10 @@ class PipelineStartup(helper_functions.JunoHelpers):
         return samples            
 
     def make_sample_dict(self):
-        """Function to make a sample sheet from the input directory (expecting 
-        either fastq or fasta files as input)"""
+        '''
+        Function to make a sample sheet from the input directory (expecting 
+        either fastq or fasta files as input)
+        '''
         if self.input_type == 'fastq':
             samples = self.__enlist_fastq_samples()
         elif self.input_type == 'fasta':
@@ -146,7 +174,10 @@ class PipelineStartup(helper_functions.JunoHelpers):
     def validate_sample_dict(self):
         if not self.sample_dict:
             raise ValueError(
-                    self.error_formatter(f'The input directory ({self.input_dir}) does not contain any files with the expected format/naming. Also check that your files have an expected size (min. number of lines expected: {self.min_num_lines}'))
+                    self.error_formatter(
+                        f'The input directory ({self.input_dir}) does not contain any files with the expected format/naming. Also check that your files have an expected size (min. number of lines expected: {self.min_num_lines})'
+                        )
+                        )
         if self.input_type == 'fastq' or self.input_type == 'both':
             for sample in self.sample_dict:
                 R1_present = 'R1' in self.sample_dict[sample].keys()
@@ -160,15 +191,15 @@ class PipelineStartup(helper_functions.JunoHelpers):
                     raise KeyError(self.error_formatter(f'The assembly is mising for sample {sample}. This pipeline expects an assembly per sample.'))
 
     def get_metadata_from_csv_file(self, filepath=None, expected_colnames=['sample', 'genus']):
-        """
+        '''
         Function to get a dictionary with the sample, genus and species per 
         sample
-        """
-        # Only when the input_dir comes from the Juno-assembly pipeline 
-        # the input directory will have a sub-directory called identify_species
-        # containing a top1_species_multireport.csv file that can be used as the
-        # metadata for other downstream pipelines 
+        ''' 
         if filepath is None:
+            # Only when the input_dir comes from the Juno-assembly pipeline 
+            # the input directory will have a sub-directory called identify_species
+            # containing a top1_species_multireport.csv file that can be used as the
+            # metadata for other downstream pipelines
             juno_species_file = self.input_dir.joinpath('identify_species', 'top1_species_multireport.csv')
         else:
             juno_species_file = pathlib.Path(filepath)
@@ -186,8 +217,11 @@ class PipelineStartup(helper_functions.JunoHelpers):
 
 
 class RunSnakemake(helper_functions.JunoHelpers):
-    """Class with necessary input to run Snakemake"""
-
+    '''
+    Class with necessary input to actually run Snakemake. It is basically a 
+    wrapper for the snakemake function (of the snakemake package) but with some
+    customization that is used in all our Juno pipelines
+    '''
     def __init__(self,
                 pipeline_name,
                 pipeline_version,
@@ -213,6 +247,7 @@ class RunSnakemake(helper_functions.JunoHelpers):
                 latency_wait=60,
                 name_snakemake_report='snakemake_report.html',
                 **kwargs):
+        '''Constructor'''
         self.pipeline_name=pipeline_name
         self.pipeline_version=pipeline_version
         self.output_dir=pathlib.Path(output_dir)
@@ -239,18 +274,24 @@ class RunSnakemake(helper_functions.JunoHelpers):
         self.latency=latency_wait
         self.kwargs = kwargs
         # Generate pipeline audit trail
-        self.get_run_info()
         if not self.dryrun or self.unlock:
             self.path_to_audit.mkdir(parents=True, exist_ok=True)
             self.audit_trail = self.generate_audit_trail()
 
     def get_run_info(self):
+        '''
+        Produce info specific for the current run, like a random ID, timestamp 
+        and host name.
+        '''
+        self.unique_id = uuid4()
         self.date_and_time=datetime.now().strftime('%d-%m-%Y %H:%M:%S')
         self.hostname=str(subprocess.check_output(['hostname']).strip())
 
     def get_git_audit(self, git_file):
-        """Function to get URL and commit from pipeline repo 
-        (if downloaded through git)"""
+        '''
+        Function to get URL and commit from pipeline repo (if downloaded 
+        through git)
+        '''
         print(self.message_formatter(f"Collecting information about the Git repository of this pipeline (see {str(git_file)})"))
         git_audit = {"repo": self.get_repo_url('.'),
                     "commit": self.get_commit_git('.')}
@@ -258,44 +299,66 @@ class RunSnakemake(helper_functions.JunoHelpers):
             yaml.dump(git_audit, file, default_flow_style=False)
 
     def get_pipeline_audit(self, pipeline_file):
-        print(self.message_formatter(f"Collecting information about the pipeline (see {str(pipeline_file)})"))
+        '''Get the pipeline_info and print it to a file for audit trail'''
+        print(self.message_formatter(
+            f"Collecting information about the pipeline (see {str(pipeline_file)})"
+            ))
+        self.get_run_info()
         pipeline_info = {'pipeline_name': self.pipeline_name,
                         'pipeline_version': self.pipeline_version,
                         'timestamp': self.date_and_time,
-                        'hostname': self.hostname}
+                        'hostname': self.hostname,
+                        'run_id': self.unique_id}
         with open(pipeline_file, 'w') as file:
             yaml.dump(pipeline_info, file, default_flow_style=False)
 
     def get_conda_audit(self, conda_file):
-        print(self.message_formatter("Getting information of the master environment used for this pipeline."))
+        '''
+        Get list of environments in current conda environment
+        '''
+        print(
+            self.message_formatter(
+                "Getting information of the master environment used for this pipeline."
+            )
+        )
         conda_audit = subprocess.check_output(["conda","list"]).strip()
         with open(conda_file, 'w') as file:
             file.writelines("Master environment list:\n\n")
             file.write(str(conda_audit))
 
     def generate_audit_trail(self):
+        '''
+        Produce audit trail in the output_dir. Most file contents are produced
+        within this function but the sample_sheet and the user_parameters file
+        should be produced in the individual pipelines and this step just 
+        ensures a copy is stored in the output_dir for audit trail
+        '''
         assert pathlib.Path(self.sample_sheet).exists(), \
-            f"The sample sheet ({str(sample_sheet)}) does not exist. This sample sheet is generated before starting your pipeline. Something must have gone wrong while creating it."
+            f"The sample sheet ({str(sample_sheet)}) does not exist. Either this file was not created properly by the pipeline or was deleted before starting the pipeline."
         assert pathlib.Path(self.user_parameters).exists(), \
-            f"The provided user_parameters ({self.user_parameters}) was not created properly or was deleted before starting the pipeline"
-
+            f"The provided user_parameters ({self.user_parameters}) does not exist. Either this file was not created properly by the pipeline or was deleted before starting the pipeline"
         git_file = self.path_to_audit.joinpath('log_git.yaml')
-        conda_file = self.path_to_audit.joinpath('log_conda.txt')
-        pipeline_file = self.path_to_audit.joinpath('log_pipeline.yaml')
-        user_parameters_audit_file = self.path_to_audit.joinpath('user_parameters.yaml')
-        samples_audit_file = self.path_to_audit.joinpath('sample_sheet.yaml')
-        
         self.get_git_audit(git_file)
+        conda_file = self.path_to_audit.joinpath('log_conda.txt')
         self.get_conda_audit(conda_file)
+        pipeline_file = self.path_to_audit.joinpath('log_pipeline.yaml')
         self.get_pipeline_audit(pipeline_file)
-        subprocess.run(['cp', self.sample_sheet, samples_audit_file],
-                                            check=True, timeout=60)
+        user_parameters_audit_file = self.path_to_audit.joinpath('user_parameters.yaml')
         subprocess.run(['cp', self.user_parameters, user_parameters_audit_file],
+                                            check=True, timeout=60)
+        samples_audit_file = self.path_to_audit.joinpath('sample_sheet.yaml')
+        subprocess.run(['cp', self.sample_sheet, samples_audit_file],
                                             check=True, timeout=60)
         return [git_file, conda_file, pipeline_file, user_parameters_audit_file, samples_audit_file]
 
     def run_snakemake(self):
-
+        '''
+        Main function to run snakemake. It has all the pre-determined input for
+        running a Juno pipeline. Everything is customizable to run outside the 
+        RIVM but the defaults are set for the RIVM and especially for an LSF 
+        cluster. The commands are for now set to use bsub so it will not work
+        with other types of clusters but it is on the to-do list to do it.
+        '''
         print(self.message_formatter(f"Running {self.pipeline_name} pipeline."))
 
         if self.local:
@@ -340,13 +403,20 @@ class RunSnakemake(helper_functions.JunoHelpers):
         return pipeline_run_successful
 
     def make_snakemake_report(self):
-    
+        '''
+        Function to make a snakemake report after having run a pipeline. Note
+        that it expects that the output files were already produced by the 
+        run_snakemake function
+        '''
         print(self.message_formatter(f"Generating snakemake report for audit trail..."))
-
+        # The copy of the sample sheet that was generated for audit trail is 
+        # used instead of the original sample sheet. This is to avoid that if
+        # a new run is started while there is one running, the correct sample
+        # sheet for this new run is used.
         snakemake_report_successful = snakemake(self.snakefile,
                                     workdir=self.workdir,
                                     configfiles=[self.user_parameters, self.fixed_parameters],
-                                    config={"sample_sheet": str(self.sample_sheet)},
+                                    config={"sample_sheet": str(self.path_to_audit.joinpath('sample_sheet.yaml'))},
                                     cores=1,
                                     nodes=1,
                                     use_conda=self.useconda,

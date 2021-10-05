@@ -4,25 +4,27 @@ import pathlib
 
 
 class TextHelpers:
-    """Class with helper functions for text manipulation"""
+    '''Class with helper functions for text manipulation'''
     
     def color_text(self, text, color_code):
-        """Function to convert normal text to color text """
+        '''Function to convert normal text to color text '''
         formatted_text = '\033[0;' + str(color_code) + 'm' + text + '\n\033[0;0m'
         return formatted_text
 
     def message_formatter(self, message):
-        """Function to convert normal text to yellow text (for an 
-        important message)"""
+        '''
+        Function to convert normal text to yellow text (for an important 
+        message)
+        '''
         return self.color_text(text=message, color_code=33)
 
     def error_formatter(self, message):
-        """Function to convert normal text to red text (for an error)"""
+        '''Function to convert normal text to red text (for an error)'''
         return self.color_text(text=message, color_code=31)
 
 
 class FileHelpers:
-    """Class with helper functions for file/dir validation and manipulation"""
+    '''Class with helper functions for file/dir validation and manipulation'''
 
     def validate_is_nonempty_file(self, file_path, min_file_size=0):
         file_path = pathlib.Path(file_path)
@@ -38,9 +40,10 @@ class FileHelpers:
             return file_.read(2) == b'\x1f\x8b'
         
     def validate_file_has_min_lines(self, file_path, min_num_lines=-1):
-        """Test if gzip file contains more than the desired number of lines. 
+        '''
+        Test if gzip file contains more than the desired number of lines. 
         Returns True/False
-        """
+        '''
         if not self.validate_is_nonempty_file(file_path, min_file_size=1):
             return False
         else:
@@ -56,10 +59,10 @@ class FileHelpers:
 
 
 class GitHelpers:
-    """Class with helper functions for handling git repositories"""
+    '''Class with helper functions for handling git repositories'''
     
     def download_git_repo(self, version, url, dest_dir):
-        """Function to download a git repo"""
+        '''Function to download a git repo'''
         try:
             # If updating (or simply an unfinished installation is present)
             # the downloading will fail. Therefore, need to remove all 
@@ -85,9 +88,12 @@ class GitHelpers:
             raise
             
     def get_repo_url(self, gitrepo_dir):
-        """Function to get the URL of a directory. It first checks wheter it
-        is actually a repo (sometimes the code is just downloaded as zip and
-        it is not considered a repo"""
+        '''
+        Function to get the URL of a directory. It first checks wheter it is
+        actually a repo (sometimes the code is just downloaded as zip and it
+        does not have the .git sub directory with the information that identifies
+        it as a git repo
+        '''
         try:
             url = subprocess.check_output(["git","config", "--get", "remote.origin.url"],
                                             cwd = f'{str(gitrepo_dir)}').strip()
@@ -97,7 +103,9 @@ class GitHelpers:
         return url
 
     def get_commit_git(self, gitrepo_dir):
-        """Function to get the commit number from a folder (must be a git repo)"""
+        '''
+        Function to get the commit number from a folder (must be a git repo)
+        '''
         try:
             commit = subprocess.check_output(['git', 
                                             '--git-dir', 
@@ -111,11 +119,21 @@ class GitHelpers:
 
 
 class JunoHelpers(TextHelpers, FileHelpers, GitHelpers):
+    '''
+    This Class just puts together all the other helpers in one class.
+    '''
     pass
 
 
 class SnakemakeKwargsAction(argparse.Action,
                                 JunoHelpers):
+    '''
+    Argparse Action that can be used in the argument parser of the Juno 
+    pipelines to store and process extra arguments (kwargs) that will be
+    passed to the Snakemake API. Those arguments need to follow the arg=value
+    (no spaces in between) format and use only arguments that are accepted
+    by snakemake API. This is advanced usage.
+    '''
     def __call__(self, parser, namespace, values, option_string=None):
         keyword_dict = {}
         for arg in values: 

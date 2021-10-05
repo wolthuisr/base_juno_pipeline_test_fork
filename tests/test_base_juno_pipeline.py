@@ -322,6 +322,7 @@ class TestRunSnakemake(unittest.TestCase):
                                                     user_parameters='user_parameters.yaml',
                                                     fixed_parameters='fixed_parameters.yaml',
                                                     dryrun=True)
+        fake_run.get_run_info()
         audit_trail_path = pathlib.Path('fake_output_dir', 'audit_trail')
         self.assertIsInstance(fake_run.date_and_time, str)
         self.assertEqual(fake_run.workdir, pathlib.Path(main_script_path))
