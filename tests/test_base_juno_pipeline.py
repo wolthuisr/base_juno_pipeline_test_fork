@@ -185,25 +185,30 @@ class TestPipelineStartup(unittest.TestCase):
     def test_nonexisting_dir(self):
         """Testing the pipeline startup fails if the input directory does not 
         exist"""
-        self.assertRaises(AssertionError, 
-                            base_juno_pipeline.PipelineStartup, 
-                            pathlib.Path('unexisting'), 
-                            'both')
+        with self.assertRaises(AssertionError):
+            pipeline = base_juno_pipeline.PipelineStartup(
+                pathlib.Path('unexisting'), 
+                'both')
+            pipeline.start_juno_pipeline()
 
     def test_emptydir(self):
         """Testing the pipeline startup fails if the input directory does not 
         have expected files"""
-        self.assertRaises(ValueError, 
-                            base_juno_pipeline.PipelineStartup, 
-                            pathlib.Path('fake_dir_empty'), 
-                            'both')
+        pipeline = base_juno_pipeline.PipelineStartup(pathlib.Path(
+            'fake_dir_empty'), 
+            'fastq')
+        with self.assertRaises(ValueError):
+            pipeline.start_juno_pipeline()
 
     def test_incompletedir(self):
         """Testing the pipeline startup fails if the input directory is 
         missing some of the fasta files for the fastq files"""
-        self.assertRaises(KeyError, 
-                            base_juno_pipeline.PipelineStartup, 
-                            pathlib.Path('fake_dir_incomplete'), 'both')
+        pipeline = base_juno_pipeline.PipelineStartup(
+            pathlib.Path('fake_dir_incomplete'), 
+            'both'
+        )
+        with self.assertRaises(KeyError):
+            pipeline.start_juno_pipeline()
 
     def test_correctdir_fastq(self):
         """Testing the pipeline startup accepts fastq and fastq.gz files"""
@@ -213,6 +218,7 @@ class TestPipelineStartup(unittest.TestCase):
                             'sample2': {'R1': str(pathlib.Path('fake_dir_wsamples').joinpath('sample2_R1_filt.fq')), 
                                         'R2': str(pathlib.Path('fake_dir_wsamples').joinpath('sample2_R2_filt.fq.gz'))}}
         pipeline = base_juno_pipeline.PipelineStartup(pathlib.Path('fake_dir_wsamples'), 'fastq')
+        pipeline.start_juno_pipeline()
         self.assertDictEqual(pipeline.sample_dict, expected_output)
         
     def test_correctdir_fasta(self):
@@ -221,6 +227,7 @@ class TestPipelineStartup(unittest.TestCase):
         expected_output = {'sample1': {'assembly': str(pathlib.Path('fake_dir_wsamples').joinpath('sample1.fasta'))}, 
                             'sample2': {'assembly': str(pathlib.Path('fake_dir_wsamples').joinpath('sample2.fasta'))}}
         pipeline = base_juno_pipeline.PipelineStartup(pathlib.Path('fake_dir_wsamples'), 'fasta')
+        pipeline.start_juno_pipeline()
         self.assertDictEqual(pipeline.sample_dict, expected_output)
         
     def test_correctdir_both(self):
@@ -233,6 +240,7 @@ class TestPipelineStartup(unittest.TestCase):
                                         'R2': str(pathlib.Path('fake_dir_wsamples').joinpath('sample2_R2_filt.fq.gz')), 
                                         'assembly': str(pathlib.Path('fake_dir_wsamples').joinpath('sample2.fasta'))}}
         pipeline = base_juno_pipeline.PipelineStartup(pathlib.Path('fake_dir_wsamples'), 'both')
+        pipeline.start_juno_pipeline()
         pipeline.get_metadata_from_csv_file()
         self.assertDictEqual(pipeline.sample_dict, expected_output)
         self.assertEqual(pipeline.juno_metadata, None)
@@ -241,11 +249,12 @@ class TestPipelineStartup(unittest.TestCase):
         """Testing the pipeline startup fails if you set a min_num_lines 
         different than 0"""
 
-        self.assertRaises(ValueError, 
-                            base_juno_pipeline.PipelineStartup, 
-                            pathlib.Path('fake_dir_incomplete'), 
-                            'both',
-                            min_num_lines = 1000)
+        pipeline = base_juno_pipeline.PipelineStartup(
+            pathlib.Path('fake_dir_incomplete'), 
+            'both',
+            min_num_lines = 1000)
+        with self.assertRaises(ValueError):
+            pipeline.start_juno_pipeline()
 
     def test_junodir_wnumericsamplenames(self):
         """Testing the pipeline startup converts numeric file names to 
@@ -257,6 +266,7 @@ class TestPipelineStartup(unittest.TestCase):
         expected_metadata = {'1234': {'genus': 'salmonella',
                                     'species': 'enterica'}}
         pipeline = base_juno_pipeline.PipelineStartup(pathlib.Path('fake_dir_juno'), 'both')
+        pipeline.start_juno_pipeline()
         pipeline.get_metadata_from_csv_file()
         self.assertDictEqual(pipeline.sample_dict, expected_output)
         self.assertDictEqual(pipeline.juno_metadata, expected_metadata, pipeline.juno_metadata)
@@ -271,6 +281,7 @@ class TestPipelineStartup(unittest.TestCase):
         expected_metadata = {'1234': {'genus': 'salmonella',
                                     'species': 'enterica'}}
         pipeline = base_juno_pipeline.PipelineStartup('fake_dir_juno', 'both')
+        pipeline.start_juno_pipeline()
         self.assertDictEqual(pipeline.sample_dict, expected_output)
         pipeline.get_metadata_from_csv_file(filepath='fake_dir_juno/identify_species/top1_species_multireport.csv')
         self.assertDictEqual(pipeline.juno_metadata, expected_metadata, pipeline.juno_metadata)
@@ -278,16 +289,18 @@ class TestPipelineStartup(unittest.TestCase):
     def test_fail_with_wrong_fastq_naming(self):
         """Testing the pipeline startup fails with wrong fastq naming (name 
         contains _1_ in the sample name)"""
-        self.assertRaises(KeyError, 
-                            base_juno_pipeline.PipelineStartup, 
-                            pathlib.Path('fake_wrong_fastq_names'), 
-                            'fastq')
+        pipeline = base_juno_pipeline.PipelineStartup(
+            pathlib.Path('fake_wrong_fastq_names'), 
+            'fastq')
+        with self.assertRaises(KeyError):
+            pipeline.start_juno_pipeline()
 
     def test_fails_if_metadata_has_wrong_colnames(self):
         """
         Testing the pipeline startup fails with wrong column names in metadata
         """
         test = base_juno_pipeline.PipelineStartup('fake_dir_juno', 'both')
+        test.start_juno_pipeline()
         with self.assertRaisesRegex(AssertionError, 'does not contain one or more of the expected column names'):
             test.get_metadata_from_csv_file(expected_colnames=['Sample', 'Genus'])
 

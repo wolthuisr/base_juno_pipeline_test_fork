@@ -34,7 +34,6 @@ class PipelineStartup(helper_functions.JunoHelpers):
         self.input_type = input_type
         self.min_num_lines = int(min_num_lines)
         self.__validate_arguments()
-        self.start_juno_pipeline()
 
     def __validate_arguments(self):
         assert self.input_dir.is_dir(), \
