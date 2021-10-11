@@ -272,10 +272,6 @@ class RunSnakemake(helper_functions.JunoHelpers):
         self.restarttimes=restarttimes
         self.latency=latency_wait
         self.kwargs = kwargs
-        # Generate pipeline audit trail
-        if not self.dryrun or self.unlock:
-            self.path_to_audit.mkdir(parents=True, exist_ok=True)
-            self.audit_trail = self.generate_audit_trail()
 
     def get_run_info(self):
         '''
@@ -333,7 +329,7 @@ class RunSnakemake(helper_functions.JunoHelpers):
         ensures a copy is stored in the output_dir for audit trail
         '''
         assert pathlib.Path(self.sample_sheet).exists(), \
-            f"The sample sheet ({str(sample_sheet)}) does not exist. Either this file was not created properly by the pipeline or was deleted before starting the pipeline."
+            f"The sample sheet ({str(self.sample_sheet)}) does not exist. Either this file was not created properly by the pipeline or was deleted before starting the pipeline."
         assert pathlib.Path(self.user_parameters).exists(), \
             f"The provided user_parameters ({self.user_parameters}) does not exist. Either this file was not created properly by the pipeline or was deleted before starting the pipeline"
         git_file = self.path_to_audit.joinpath('log_git.yaml')
@@ -359,6 +355,11 @@ class RunSnakemake(helper_functions.JunoHelpers):
         with other types of clusters but it is on the to-do list to do it.
         '''
         print(self.message_formatter(f"Running {self.pipeline_name} pipeline."))
+        
+        # Generate pipeline audit trail only if not dryrun (or unlock)
+        if not self.dryrun or self.unlock:
+            self.path_to_audit.mkdir(parents=True, exist_ok=True)
+            self.audit_trail = self.generate_audit_trail()
 
         if self.local:
             print(self.message_formatter("Jobs will run locally"))
