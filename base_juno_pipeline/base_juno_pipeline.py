@@ -128,7 +128,7 @@ class PipelineStartup(helper_functions.JunoHelpers):
         # It does NOT accept sample names that contain _1 or _2 in the name
         # because they get confused with the identifiers of forward and reverse
         # reads.
-        pattern = re.compile("(.*?)(?:_S\d+_|_S\d+.|_|\.)(?:p)?R?(1|2)(?:_.*\.|\..*\.|\.)f(ast)?q(\.gz)?")
+        pattern = re.compile("(.*?)(?:_S\d+_|_S\d+.|_|\.)(?:_L555_)?(?:p)?R?(1|2)(?:_.*\.|\..*\.|\.)f(ast)?q(\.gz)?")
         samples = {}
         for file_ in self.__subdirs_['fastq'].iterdir():
             if self.validate_file_has_min_lines(file_, self.min_num_lines):
