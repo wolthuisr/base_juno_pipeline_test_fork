@@ -373,8 +373,9 @@ class RunSnakemake(helper_functions.JunoHelpers):
                     -o %s/{name}_{wildcards}_{jobid}.out \
                     -e %s/{name}_{wildcards}_{jobid}.err \
                     -R \"span[hosts=1]\" \
+                    -R \"rusage[mem={resources.mem_gb}G]\" \
                     -M {resources.mem_gb}G \
-                    -W 60" % (str(self.queue), str(cluster_log_dir), str(cluster_log_dir))
+                    -W 60 " % (str(self.queue), str(cluster_log_dir), str(cluster_log_dir))
         
         pipeline_run_successful = snakemake(self.snakefile,
                                     workdir=self.workdir,
