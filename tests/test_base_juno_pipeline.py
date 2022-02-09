@@ -341,6 +341,7 @@ class TestRunSnakemake(unittest.TestCase):
     def tearDownClass():
         os.system('rm sample_sheet.yaml user_parameters.yaml fixed_parameters.yaml')
         os.system('rm -rf fake_output_dir')
+        os.system('rm -rf fake_hpcoutput_dir')
         os.system('rm -rf fake_input')
 
     def test_fake_dryrun_setup(self):       
@@ -409,7 +410,9 @@ class TestRunSnakemake(unittest.TestCase):
                         repo_url_in_audit_trail = True
             self.assertTrue(repo_url_in_audit_trail)
 
-    def test_pipeline(self):     
+    def test_pipeline(self):  
+        output_dir = pathlib.Path('fake_output_dir')  
+        os.system(f'echo "output_dir: {str(output_dir)}" > user_parameters.yaml')   
         fake_run = base_juno_pipeline.RunSnakemake(pipeline_name='fake_pipeline',
                                                     pipeline_version='0.1',
                                                     output_dir='fake_output_dir',
@@ -420,11 +423,36 @@ class TestRunSnakemake(unittest.TestCase):
                                                     snakefile='tests/Snakefile',
                                                     name_snakemake_report='fake_snakemake_report.html',
                                                     local=True)
-        audit_trail_path = pathlib.Path('fake_output_dir', 'audit_trail')
+        audit_trail_path = output_dir.joinpath('audit_trail')
         successful_run = fake_run.run_snakemake()
         successful_report = fake_run.make_snakemake_report()
         self.assertTrue(successful_run)
-        self.assertTrue(pathlib.Path('fake_output_dir/fake_result.txt').exists())
+        self.assertTrue(output_dir.joinpath('fake_result.txt').exists())
+        self.assertTrue(successful_report)
+        self.assertTrue(audit_trail_path.joinpath('fake_snakemake_report.html').exists())
+
+    @unittest.skipIf(not pathlib.Path('/data/BioGrid/hernanda/').exists(), "Skipped if not in RIVM HPC cluster")
+    def test_pipeline_in_hpcRIVM(self):   
+        output_dir = pathlib.Path('fake_hpcoutput_dir')  
+        os.system(f'echo "output_dir: {str(output_dir)}" > user_parameters.yaml')
+        fake_run = base_juno_pipeline.RunSnakemake(
+            pipeline_name='fake_pipeline',
+            pipeline_version='0.1',
+            output_dir=output_dir,
+            workdir=main_script_path,
+            sample_sheet='sample_sheet.yaml',
+            user_parameters='user_parameters.yaml',
+            fixed_parameters='fixed_parameters.yaml',
+            snakefile='tests/Snakefile',
+            name_snakemake_report='fake_snakemake_report.html',
+            local=False,
+            time_limit=200
+        )
+        audit_trail_path = output_dir.joinpath('audit_trail')
+        successful_run = fake_run.run_snakemake()
+        successful_report = fake_run.make_snakemake_report()
+        self.assertTrue(successful_run)
+        self.assertTrue(output_dir.joinpath('fake_result.txt').exists())
         self.assertTrue(successful_report)
         self.assertTrue(audit_trail_path.joinpath('fake_snakemake_report.html').exists())
         

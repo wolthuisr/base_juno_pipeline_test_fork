@@ -3,6 +3,7 @@ __pycache__/
 base_juno_pipeline/__pycache__/
 .snakemake/
 *.egg-info/
+.vscode/
 
 # Conda
 conda

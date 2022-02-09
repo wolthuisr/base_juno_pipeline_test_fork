@@ -237,13 +237,13 @@ class RunSnakemake(helper_functions.JunoHelpers):
                 rerunincomplete=True,
                 dryrun=False,
                 useconda=True,
-                conda_frontend='mamba',
                 conda_prefix=None,
                 usesingularity=True,
                 singularityargs='',
                 singularity_prefix=None,
                 restarttimes=0,
                 latency_wait=60,
+                time_limit=60,
                 name_snakemake_report='snakemake_report.html',
                 **kwargs):
         '''Constructor'''
@@ -271,6 +271,7 @@ class RunSnakemake(helper_functions.JunoHelpers):
         self.singularity_prefix=singularity_prefix
         self.restarttimes=restarttimes
         self.latency=latency_wait
+        self.time_limit = time_limit
         self.kwargs = kwargs
 
     def get_run_info(self):
@@ -375,7 +376,7 @@ class RunSnakemake(helper_functions.JunoHelpers):
                     -R \"span[hosts=1]\" \
                     -R \"rusage[mem={resources.mem_gb}G]\" \
                     -M {resources.mem_gb}G \
-                    -W 60 " % (str(self.queue), str(cluster_log_dir), str(cluster_log_dir))
+                    -W %s " % (str(self.queue), str(cluster_log_dir), str(cluster_log_dir), str(self.time_limit))
         
         pipeline_run_successful = snakemake(self.snakefile,
                                     workdir=self.workdir,
