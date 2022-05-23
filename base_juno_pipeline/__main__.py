@@ -75,6 +75,13 @@ def get_args():
         help='Path to sample sheet file to be created'
     )
     parser.add_argument(
+        '-ex',
+        '--exclusionfile',
+        type=pathlib.Path,
+        metavar='FILE',
+        help='Path to the file that contains samplenames to be excluded.'
+    )
+    parser.add_argument(
         '-pp',
         '--pipelineparameters',
         type=pathlib.Path,

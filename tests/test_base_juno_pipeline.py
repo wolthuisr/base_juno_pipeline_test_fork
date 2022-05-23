@@ -221,6 +221,15 @@ class TestPipelineStartup(unittest.TestCase):
         pipeline.start_juno_pipeline()
         self.assertDictEqual(pipeline.sample_dict, expected_output)
 
+    def test_excludefile_fastq(self):
+        """Testing the pipeline startup accepts and works with exclusion file on fastq and fastq.gz files"""
+        expected_output = {'sample1': {'R1': str(pathlib.Path('fake_dir_wsamples').joinpath('sample1_R1.fastq')), 
+                                        'R2': str(pathlib.Path('fake_dir_wsamples').joinpath('sample1_R2.fastq.gz'))}}
+        pipeline = base_juno_pipeline.PipelineStartup(pathlib.Path('fake_dir_wsamples'), pathlib.Path('test.txt'), 'fastq')
+        pipeline.start_juno_pipeline()
+        self.assertDictEqual(pipeline.sample_dict, expected_output)
+
+
     def test_correctdir_fastq_with_L555_in_filename(self):
         """Testing the pipeline startup accepts fastq and fastq.gz files"""
 
