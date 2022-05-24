@@ -27,12 +27,15 @@ class PipelineStartup(helper_functions.JunoHelpers):
     
     def __init__(self,
                 input_dir,
-                exclusion_file, 
+                exclusion_file=None, 
                 input_type='fastq',
                 min_num_lines=0):
         '''Constructor'''
         self.input_dir = pathlib.Path(input_dir)
-        self.exclusion_file = pathlib.Path(exclusion_file)
+        if exclusion_file is None:
+            self.exclusion_file = None
+        else:
+            self.exclusion_file = pathlib.Path(exclusion_file)
         self.input_type = input_type
         self.min_num_lines = int(min_num_lines)
         self.__validate_arguments()
@@ -57,12 +60,12 @@ class PipelineStartup(helper_functions.JunoHelpers):
         self.__validate_input_dir()
         print("Making a list of samples to be processed in this pipeline run...")
         print("Checking if samples need to be Excluded")
-        #TODO is this the correct way?
-        if self.exclusion_file.is_file():
-            self.sample_dict = self.exclude_samples()
+        self.make_sample_dict()
+        if self.exclusion_file is not None:
+            print("found exclusion file")
+            self.sample_dict = self.__exclude_samples()
+            print("new dict without samples that are excluded")
             print(self.sample_dict)
-        else:
-            self.sample_dict = self.make_sample_dict()
         print("Validating that all expected input files per sample are present in the input directory...")
         self.validate_sample_dict()
 
@@ -176,24 +179,22 @@ class PipelineStartup(helper_functions.JunoHelpers):
             samples_fasta = self.__enlist_fasta_samples()
             for k in samples.keys():
                 samples[k]['assembly'] = samples_fasta[k]['assembly']
+        self.sample_dict = samples
         return samples
 
-    def exclude_samples(self):
+    def __exclude_samples(self):
         '''Function to exclude low quality samples that are specified by the user in a .txt file, given in the argument
         parser with the option -ex or --exclude. Returns a sample dict as made in the function make_sample_dict '''
-        samples = self.make_sample_dict()
         exclude_file_path = pathlib.Path(self.exclusion_file)
         if exclude_file_path.is_file():
             with open(exclude_file_path) as exclude_file_open:
                 exclude_samples = exclude_file_open.readlines()
-                exclude_samples_stripped = []
-                for x in exclude_samples:
-                    exclude_samples_stripped.append(x.replace("\n", ""))
-                for key in exclude_samples_stripped:
-                    if key in samples:
-                        print("this sample will be excluded: ", samples[key])
-                        del samples[key]
-        return samples
+                exclude_samples_stripped = [x.replace('\n', '') for x in exclude_samples]
+                self.sample_dict = {
+                    sample:self.sample_dict[sample] for sample in self.sample_dict \
+                    if sample not in exclude_samples_stripped
+                }
+        return self.sample_dict
 
     def validate_sample_dict(self):
         if not self.sample_dict:
