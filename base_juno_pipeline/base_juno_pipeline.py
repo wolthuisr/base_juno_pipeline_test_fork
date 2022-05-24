@@ -27,8 +27,8 @@ class PipelineStartup(helper_functions.JunoHelpers):
     
     def __init__(self,
                 input_dir,
-                exclusion_file=None, 
-                input_type='fastq',
+                input_type='both',
+                exclusion_file=None,
                 min_num_lines=0):
         '''Constructor'''
         self.input_dir = pathlib.Path(input_dir)
@@ -45,6 +45,8 @@ class PipelineStartup(helper_functions.JunoHelpers):
             f"The provided input directory ({str(self.input_dir)}) does not exist. Please provide an existing directory"
         assert self.input_type in ['fastq', 'fasta', 'both'], \
             "input_type to be checked can only be 'fastq', 'fasta' or 'both'"
+        if self.exclusion_file is not None:
+            assert self.exclusion_file.is_file()
         
     def start_juno_pipeline(self):
         '''
