@@ -130,9 +130,6 @@ class TestPipelineStartup(unittest.TestCase):
     def setUpClass(): 
         """Making fake directories and files to test different case scenarios 
         for starting pipeline"""
-        #TODO adjust fake dir name
-        #TODO make a fake exclusion file
-        #TODO remove the fake exclusion file after use
         fake_dirs = ['fake_dir_empty', 
                     'fake_dir_wsamples',
                     'fake_dir_wsamples_exclusion',
@@ -180,8 +177,6 @@ class TestPipelineStartup(unittest.TestCase):
 
         for fake_file in fake_files:
             if fake_file == "exclusion_file/exclusion_file.txt":
-                print("fake file name: ")
-                print(fake_file)
                 make_non_empty_file(fake_file, content="sample1")
 
 
@@ -209,6 +204,13 @@ class TestPipelineStartup(unittest.TestCase):
             pipeline = base_juno_pipeline.PipelineStartup(
                 pathlib.Path('unexisting'), 
                 'both')
+            pipeline.start_juno_pipeline()
+    
+    def test_if_excludefile_exists(self):
+        """Testing if the exclude file exists and if there is none that the pipeline continues."""
+        with self.assertRaises(ValueError):
+            pipeline = base_juno_pipeline.PipelineStartup(
+                pathlib.Path(exclusion_file='exclusion_file/exclusion_file.txt'), 'both')
             pipeline.start_juno_pipeline()
 
     def test_emptydir(self):
@@ -240,7 +242,7 @@ class TestPipelineStartup(unittest.TestCase):
         pipeline.start_juno_pipeline()
         self.assertDictEqual(pipeline.sample_dict, expected_output)
 
-    def test_excludefile_fastq(self):
+    def test_excludefile(self):
         """Testing the pipeline startup accepts and works with exclusion file on fastq and fastq.gz files"""
         expected_output = {'sample2': {'R1': str(pathlib.Path('fake_dir_wsamples_exclusion').joinpath('sample2_R1_filt.fq')), 
                                         'R2': str(pathlib.Path('fake_dir_wsamples_exclusion').joinpath('sample2_R2_filt.fq.gz'))}}
