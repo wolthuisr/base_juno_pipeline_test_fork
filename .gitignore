@@ -4,7 +4,6 @@ base_juno_pipeline/__pycache__/
 .snakemake/
 *.egg-info/
 .vscode/
-tests/test.txt
 
 # Conda
 conda

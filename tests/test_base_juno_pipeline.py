@@ -130,10 +130,13 @@ class TestPipelineStartup(unittest.TestCase):
     def setUpClass(): 
         """Making fake directories and files to test different case scenarios 
         for starting pipeline"""
-
+        #TODO adjust fake dir name
+        #TODO make a fake exclusion file
+        #TODO remove the fake exclusion file after use
         fake_dirs = ['fake_dir_empty', 
                     'fake_dir_wsamples',
-                    'fake_dir_wsamples2', 
+                    'fake_dir_wsamples_exclusion',
+                    'exclusion_file', 
                     'fake_dir_incomplete',
                     'fake_dir_juno', 
                     'fake_dir_juno/clean_fastq', 
@@ -147,12 +150,13 @@ class TestPipelineStartup(unittest.TestCase):
                     'fake_dir_wsamples/sample2_R2_filt.fq.gz', 
                     'fake_dir_wsamples/sample1.fasta',
                     'fake_dir_wsamples/sample2.fasta',
-                    'fake_dir_wsamples2/sample1_R1.fastq',
-                    'fake_dir_wsamples2/sample1_R2.fastq.gz',
-                    'fake_dir_wsamples2/sample2_R1_filt.fq',
-                    'fake_dir_wsamples2/sample2_R2_filt.fq.gz', 
-                    'fake_dir_wsamples2/sample1.fasta',
-                    'fake_dir_wsamples2/sample2.fasta',
+                    'fake_dir_wsamples_exclusion/sample1_R1.fastq',
+                    'fake_dir_wsamples_exclusion/sample1_R2.fastq.gz',
+                    'fake_dir_wsamples_exclusion/sample2_R1_filt.fq',
+                    'fake_dir_wsamples_exclusion/sample2_R2_filt.fq.gz', 
+                    'fake_dir_wsamples_exclusion/sample1.fasta',
+                    'fake_dir_wsamples_exclusion/sample2.fasta',
+                    'exclusion_file/exclusion_file.txt',
                     'fake_dir_incomplete/sample1_R1.fastq',
                     'fake_dir_incomplete/sample1_R2.fastq.gz',
                     'fake_dir_incomplete/sample2_R1_filt.fq',
@@ -163,7 +167,7 @@ class TestPipelineStartup(unittest.TestCase):
                     'fake_dir_juno/de_novo_assembly_filtered/1234.fasta',
                     'fake_wrong_fastq_names/1234_S001_PE_R1.fastq.gz',
                     'fake_wrong_fastq_names/1234_S001_PE_R2.fastq.gz']     
-                    
+
         for folder in fake_dirs:
             pathlib.Path(folder).mkdir(exist_ok = True)
         for file_ in fake_files:
@@ -174,12 +178,20 @@ class TestPipelineStartup(unittest.TestCase):
         bracken_multireport_content = "sample,genus,species\n1234,salmonella,enterica\n"
         make_non_empty_file(bracken_multireport_path, content=bracken_multireport_content)
 
+        for fake_file in fake_files:
+            if fake_file == "exclusion_file/exclusion_file.txt":
+                print("fake file name: ")
+                print(fake_file)
+                make_non_empty_file(fake_file, content="sample1")
+
+
     def tearDownClass():
         """Removing fake directories/files"""
 
         fake_dirs = ['fake_dir_empty', 
                     'fake_dir_wsamples',
-                    'fake_dir_wsamples2', 
+                    'fake_dir_wsamples_exclusion',
+                    'exclusion_file', 
                     'fake_dir_incomplete',
                     'fake_dir_juno', 
                     'fake_dir_juno/clean_fastq', 
@@ -230,11 +242,11 @@ class TestPipelineStartup(unittest.TestCase):
 
     def test_excludefile_fastq(self):
         """Testing the pipeline startup accepts and works with exclusion file on fastq and fastq.gz files"""
-        expected_output = {'sample2': {'R1': str(pathlib.Path('fake_dir_wsamples2').joinpath('sample2_R1_filt.fq')), 
-                                        'R2': str(pathlib.Path('fake_dir_wsamples2').joinpath('sample2_R2_filt.fq.gz'))}}
+        expected_output = {'sample2': {'R1': str(pathlib.Path('fake_dir_wsamples_exclusion').joinpath('sample2_R1_filt.fq')), 
+                                        'R2': str(pathlib.Path('fake_dir_wsamples_exclusion').joinpath('sample2_R2_filt.fq.gz'))}}
         pipeline = base_juno_pipeline.PipelineStartup(
-            pathlib.Path('fake_dir_wsamples2'), 
-            exclusion_file=pathlib.Path('tests/test.txt'), input_type='fastq'
+            pathlib.Path('fake_dir_wsamples_exclusion'), 
+            exclusion_file=pathlib.Path('exclusion_file/exclusion_file.txt'), input_type='fastq'
         )
         pipeline.start_juno_pipeline()
         self.assertDictEqual(pipeline.sample_dict, expected_output)
